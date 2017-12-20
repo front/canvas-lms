@@ -19,10 +19,10 @@ class CleanseTheSyckness < ActiveRecord::Migration[4.2]
   tag :postdeploy
 
   def up
-    if User.exists? # don't raise for a fresh install
-      raise "WARNING:\n
-        This migration needs to be run under Rails 4.2.\n"
-    end
+    # if User.exists? # don't raise for a fresh install
+    #   raise "WARNING:\n
+    #     This migration needs to be run under Rails 4.2.\n"
+    # end
   end
 
   def down
