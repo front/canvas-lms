@@ -1,0 +1,18 @@
+$background: #CECECE;
+// $button-bg: ;
+$button-color: #353537;
+$button-bg-hover: #4d4d4d;
+$button-border: #454545; 
+
+$theme-colors:(
+	'primary': (
+		'base': rgba(0, 0, 0, 0.85)
+		// 'light': rgba(0, 0, 0, 0.55),
+		// 'dark': 
+	),
+	'background': (
+		'base': #CECECE,
+		'light': #F5F5F6,
+		'dark': #4D4D4D
+	)
+)

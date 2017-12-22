@@ -1,0 +1,50 @@
+@import "themes/nevion/colors";
+@import "themes/nevion/variables";
+
+@import "themes/functions";
+
+body {
+	color: theme-color();
+}
+
+.ic-app-header,
+.ic-app-header__logomark {
+	background-color: $background;
+}
+
+.ic-app-header__menu-list-link,
+body.primary-nav-expanded .menu-item__text {
+	color: $button-color;
+}
+
+.ic-app-header__menu-list-link .ic-icon-svg {
+	fill: $button-color;
+}
+
+.ic-app-header__menu-list-item.ic-app-header__menu-list-item--active .ic-app-header__menu-list-link {
+	background-color: $button-bg-hover; 
+}
+
+.ic-app-header__menu-list-item.ic-app-header__menu-list-item--active .ic-app-header__menu-list-link,
+.ic-app-header__menu-list-link:hover, 
+.ic-app-header__menu-list-link:focus {
+	background-color: $button-border;
+	
+	.ic-icon-svg {
+		fill: white;
+	}
+
+	.menu-item__text {
+		color: white;
+	}
+}
+
+body.primary-nav-expanded .ic-app-header__menu-list-item.ic-app-header__menu-list-item--active .menu-item__text {
+	color: white;
+}
+
+
+footer > img {
+	width: 100px;
+    margin-right: 30px;
+}
