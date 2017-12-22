@@ -17,9 +17,9 @@
 # property set. Specify the username and a domain or IP for the server.
 # Don't use `:all`, it's a meta role.
 
-role :app, %w{server.newsfront.no}
-role :web, %w{server.newsfront.no}
-role :db,  %w{server.newsfront.no}
+role :app, %w{178.79.171.242}
+role :web, %w{178.79.171.242}
+role :db,  %w{178.79.171.242}
 
 
 

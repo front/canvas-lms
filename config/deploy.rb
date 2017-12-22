@@ -1,7 +1,7 @@
 # config valid for current version and patch releases of Capistrano
 lock '~> 3.10.0'
 
-set :application, 'canvas_lms'
+set :application, 'canvas'
 set :repo_url, 'git@github.com:front/canvas-lms.git'
 set :deploy_user, 'canvas'
 
