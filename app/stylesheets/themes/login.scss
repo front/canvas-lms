@@ -13,6 +13,12 @@ a {
 	color: theme-color('primary')!important; // :'(
 }
 
+.ic-Login__actions .ic-Login__actions-timeout input[type="checkbox"] {
+	&:focus {
+		outline-color: theme-color('secundary');
+	}
+}
+
 .ic-Login__actions .Button--login {
 	color: $button-color;
 	border: 2px solid $button-border;
@@ -22,6 +28,13 @@ a {
 	&:hover {
 		color: white;
 		background-color: theme-color('background', 'dark');
+	}
+
+	&:focus {
+		&::before {
+			box-shadow: 0px 0px 0px 2px theme-color('secundary');
+			border: none;
+		}
 	}
 }
 
@@ -52,4 +65,8 @@ input[type="color"].ic-Input:focus,
 .uneditable-input.ic-Input:focus {
 	border-color: $button-border;
 	outline-color: $button-border;
+}
+
+:focus {
+	outline-color: theme-color('secundary');
 }

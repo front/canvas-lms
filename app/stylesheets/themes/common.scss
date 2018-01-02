@@ -196,6 +196,11 @@ input[type="checkbox"] {
 	}
 }
 
+.ColorPicker__ColorBlock:before {
+	border-color: theme-color('secundary');
+}
+
+
 span[role="presentation"] {
 	ul {
 		li {
@@ -212,7 +217,8 @@ span[role="presentation"] {
 }
 
 span > button[role="button"] {
-	&:hover {
+	&:hover,
+	&:active {
 		color: theme-color('secundary');
 	}
 }
