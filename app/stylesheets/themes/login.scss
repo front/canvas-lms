@@ -1,11 +1,8 @@
-@import "themes/nevion/colors";
-@import "themes/nevion/variables";
-
-@import "themes/functions";
+@import "themes/theme";
 
 // Override css rules 
 body.ic-Login-Body {
-	background-color: $background;
+	background-color: theme-color('background');
 }
 
 .ic-Form-control--login .ic-Label,
@@ -24,7 +21,7 @@ a {
 
 	&:hover {
 		color: white;
-		background-color: $button-bg-hover;
+		background-color: theme-color('background', 'dark');
 	}
 }
 
