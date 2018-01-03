@@ -27,4 +27,5 @@ end
 group :development do
   gem "capistrano", "3.10"
   gem 'capistrano-rbenv', '2.1'
+  gem 'capistrano-bundler', '1.3'
 end
