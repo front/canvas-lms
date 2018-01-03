@@ -30,7 +30,7 @@ append :linked_files, 'config/amazon_s3.yml',
 											'config/security.yml'
 
 # Default value for linked_dirs is []
-append :linked_dirs, 'log', 'tmp/pids', 'tmp/cache', 'tmp/sockets', 
+append :linked_dirs, 'log', 'tmp/pids', 'tmp/cache', 'tmp/sockets', 'tmp/files'
 										 'public/system', 'vendor/bundle'
 
 # Default value for default_env is {}
