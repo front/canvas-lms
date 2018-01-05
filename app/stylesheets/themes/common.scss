@@ -1,27 +1,6 @@
-@import "themes/theme";
-
-// body {
-// 	color: theme-color();
-// }
-
-// .ic-app-header,
-// .ic-app-header__logomark {
-// 	background-color: theme-color('background');
-// }
-
-// .ic-app-header__menu-list-link,
-// body.primary-nav-expanded .menu-item__text {
-// 	color: $button-color;
-// }
-
-// .ic-app-header__menu-list-link .ic-icon-svg {
-// 	fill: $button-color;
-// }
-
-// .ic-app-header__menu-list-item.ic-app-header__menu-list-item--active .ic-app-header__menu-list-link {	
-// 	background-color: $button-border;	
-// }
-
+/*
+* Left Menu
+ */
 .ic-app-header__menu-list-link:hover, 
 .ic-app-header__menu-list-link:focus {
 	background-color: var(--ic-brand-global-nav-menu-item__text-color);
@@ -46,31 +25,25 @@
 
 	&:hover {
 		background-color: var(--ic-brand-primary);
-		color: var(--ic-brand-global-nav-menu-item__text-color);
 
 		.ic-icon-svg {
 			fill: var(--ic-brand-global-nav-menu-item__text-color);
 		}
+
+		.menu-item__text {
+			color: var(--ic-brand-global-nav-menu-item__text-color);
+		}
 	}
 }
 
-// .ic-app-header__menu-list-item.ic-app-header__menu-list-item--active .ic-app-header__menu-list-link {
-// 	background-color: var(--ic-brand-primary);
-// 	color: var(--ic-brand-global-nav-menu-item__text-color);
+body.primary-nav-transitions .ic-app-header__menu-list-link:hover .menu-item__text {
+	background-color: var(--ic-brand-primary);
+	color: var(--ic-brand-global-nav-menu-item__text-color);
 
-// 	.ic-icon-svg {
-// 		fill: var(--ic-brand-global-nav-menu-item__text-color);
-// 	}
-
-// 	.menu-item__text {
-// 		color: var(--ic-brand-global-nav-menu-item__text-color);
-// 	}
-// }
-
-// body.primary-nav-transitions .ic-app-header__menu-list-item.ic-app-header__menu-list-item--active .menu-item__text {
-// 	background-color: var(--ic-brand-primary);
-// 	color: var(--ic-brand-global-nav-menu-item__text-color);
-// }
+	&::after {
+		border-right-color: var(--ic-brand-primary);
+	}
+}
 
 /*
 * Footer
@@ -79,175 +52,3 @@ footer > img {
 	width: 100px;
 	margin-right: 30px;
 }
-
-// /*
-// * Buttons
-// */
-// .btn,
-// .Button,
-// .ui-button {
-// 	color: $button-color;
-// 	background-color: white;
-// 	border-color: $button-border;
-// 	// padding: 5px 15px;
-// 	transition: all 0.2s ease-in-out;
-
-// 	&:hover {
-// 		color: white;
-// 		background-color: theme-color('background', 'dark');
-// 	}
-// }
-
-// .btn-link, 
-// .Button--link{
-// 	&:hover:focus,
-// 	&:focus {
-// 		color: theme-color('secundary');
-// 	}
-// }
-
-// .ic-DashboardCard__header-button {
-// 	padding: 2px 4px;
-// 	background-color: transparent;
-// 	border: none;
-// 	color: white;
-
-// 	&:hover {
-// 		background-color: transparent;
-// 	}
-// }
-// /****/
-
-// /*
-// * Badges
-// */
-// .menu-item__badge {
-// 	background-color: theme-color('secundary');
-// }
-
-// .menu-item__text {
-// 	background-color: theme-color('secundary');
-
-// 	&::after {
-// 		border-right-color: theme-color('secundary');
-// 	}
-// }
-// /****/
-
-// /*
-// * Links
-// */
-// a {
-// 	color: theme-color('secundary');
-
-// 	&:hover,
-// 	&:focus {
-// 		color: theme-color('secundary', 'dark');
-// 	}
-// }
-// /****/
-
-// .list-view a.active {
-// 	background-color: theme-color('secundary');
-
-// 	&:hover,
-// 	&:focus {
-// 		background-color: theme-color('secundary', 'dark');
-// 	}
-// }
-
-// .ig-list .ig-row:hover {
-// 	background-color: theme-color('secundary', 'light');
-// }
-
-// // menu items
-// .ui-menu .ui-menu-item a.ui-state-hover, 
-// .ui-menu .ui-menu-item a.ui-state-active, 
-// .ui-menu .ui-menu-item .ui-progressbar a.ui-widget-header, 
-// .ui-progressbar .ui-menu .ui-menu-item a.ui-widget-header, 
-// .ui-menu .ui-menu-item a.ui-state-focus,
-// // dropdowns
-// .dropdown-menu li > a:hover, 
-// .dropdown-menu li > a:focus, 
-// .dropdown-submenu:hover > a {
-// 	background: theme-color('secundary');
-// }
-
-// select.ic-Input, 
-// textarea.ic-Input, 
-// input[type="text"].ic-Input, 
-// input[type="password"].ic-Input, 
-// input[type="datetime"].ic-Input, 
-// input[type="datetime-local"].ic-Input, 
-// input[type="date"].ic-Input, 
-// input[type="month"].ic-Input, 
-// input[type="time"].ic-Input, 
-// input[type="week"].ic-Input, 
-// input[type="number"].ic-Input, 
-// input[type="email"].ic-Input, 
-// input[type="url"].ic-Input, 
-// input[type="search"].ic-Input, 
-// input[type="tel"].ic-Input, 
-// input[type="color"].ic-Input, 
-// .uneditable-input.ic-Input,
-// .ColorPicker__Container input[type="text"] {
-// 	&:focus {		
-// 		// border-color: $button-border;
-// 		outline-color: $button-border!important; // :'(
-// 	}
-// }
-
-// select, 
-// input[type="file"], 
-// input[type="radio"], 
-// input[type="checkbox"] {
-// 	&:focus {
-// 		outline: 5px auto theme-color('secundary');
-// 	}
-// }
-
-// .ColorPicker__Actions {
-// 	// span button {
-// 	// 	&:hover,
-// 	// 	&:focus {
-// 	// 	}
-// 	// }
-
-// 	#ColorPicker__Apply {
-// 		background-color: theme-color('secundary');
-// 		border-color: theme-color('secundary');
-
-// 		&:hover,
-// 		&:focus {
-// 			background-color: theme-color('secundary', 'dark');
-// 			color: white;
-// 		}
-// 	}
-// }
-
-// .ColorPicker__ColorBlock:before {
-// 	border-color: theme-color('secundary');
-// }
-
-
-// span[role="presentation"] {
-// 	ul {
-// 		li {
-// 			span[role="menuitemradio"] {
-// 				&:hover,
-// 				&:focus {
-// 					span {
-// 						background-color: theme-color('secundary');
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
-// }
-
-// span > button[role="button"] {
-// 	&:hover,
-// 	&:active {
-// 		color: theme-color('secundary');
-// 	}
-// }
