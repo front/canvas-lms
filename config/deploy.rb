@@ -19,14 +19,14 @@ set :deploy_user, 'canvas'
 # set :pty, true
 
 # Default value for :linked_files is []
-append :linked_files, 'config/amazon_s3.yml',
-											'config/dynamic_settings.yml',
+append :linked_files, # 'config/amazon_s3.yml',
+											# 'config/dynamic_settings.yml',
 											'config/database.yml',
-											'config/delayed_jobs.yml',
-											'config/domain.yml',
-											'config/external_migration.yml',
-											'config/file_store.yml',
-											'config/outgoing_mail.yml',
+											# 'config/delayed_jobs.yml',
+											# 'config/domain.yml',
+											# 'config/external_migration.yml',
+											# 'config/file_store.yml',
+											# 'config/outgoing_mail.yml',
 											'config/security.yml',
                       'config/redis.yml',
                       'config/cache_store.yml'
