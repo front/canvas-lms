@@ -22,3 +22,14 @@ require File.expand_path("../config/canvas_rails5", __FILE__)
 Dir.glob(File.join(File.dirname(__FILE__), 'Gemfile.d', '*.rb')).sort.each do |file|
   eval(File.read(file), nil, file)
 end
+
+group :development do
+  gem "capistrano", "3.10"
+  gem 'capistrano-rbenv', '2.1'
+  gem 'capistrano-bundler', '1.3'
+  gem 'capistrano-yarn'
+  gem 'capistrano3-unicorn'
+  gem 'capistrano-rails', '1.3'
+end
+
+gem 'unicorn', :group => [:production, :staging]
