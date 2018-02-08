@@ -3,7 +3,8 @@ paths:
   sass_dir: app/stylesheets
   all_sass_bundles: 'app/stylesheets/{,plugins/*/}**/[^_]*.s[ac]ss'
   all_sass_files: 'app/stylesheets/{,plugins/*/}**/*.s[ac]ss'
-  brandable_variables_json: app/stylesheets/brandable_variables.json
+  # brandable_variables_json: app/stylesheets/brandable_variables.json
+  brandable_variables_json: app/stylesheets/nevion_brandable_variables.json
   bundles_with_deps: public/dist/brandable_css/brandable_css_bundles_with_deps.json
   file_checksums: public/dist/brandable_css/brandable_css_file_checksums.json
   output_dir: public/dist/brandable_css

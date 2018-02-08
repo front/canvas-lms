@@ -1,0 +1,54 @@
+/*
+* Left Menu
+ */
+.ic-app-header__menu-list-link:hover, 
+.ic-app-header__menu-list-link:focus {
+	background-color: var(--ic-brand-global-nav-menu-item__text-color);
+
+	.ic-icon-svg {
+		fill: var(--ic-brand-primary);
+	}
+
+	.ic-avatar img {
+		border: 2px solid var(--ic-brand-primary);
+	    border-radius: 50%;
+	    box-sizing: inherit;
+	}
+
+	.menu-item__text {
+		color: var(--ic-brand-primary);
+	}
+}
+
+.ic-app-header__menu-list-item.ic-app-header__menu-list-item--active .ic-app-header__menu-list-link {
+	background-color: var(--ic-brand-primary);
+
+	&:hover {
+		background-color: var(--ic-brand-primary);
+
+		.ic-icon-svg {
+			fill: var(--ic-brand-global-nav-menu-item__text-color);
+		}
+
+		.menu-item__text {
+			color: var(--ic-brand-global-nav-menu-item__text-color);
+		}
+	}
+}
+
+body.primary-nav-transitions .ic-app-header__menu-list-link:hover .menu-item__text {
+	background-color: var(--ic-brand-primary);
+	color: var(--ic-brand-global-nav-menu-item__text-color);
+
+	&::after {
+		border-right-color: var(--ic-brand-primary);
+	}
+}
+
+/*
+* Footer
+*/
+footer > img {
+	width: 100px;
+	margin-right: 30px;
+}
