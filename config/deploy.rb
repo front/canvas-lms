@@ -1,9 +1,7 @@
 # config valid for current version and patch releases of Capistrano
 lock '~> 3.10.0'
 
-set :application, 'canvas'
 set :repo_url, 'git@github.com:front/canvas-lms.git'
-set :deploy_user, 'canvas'
 
 # Default branch is :master
 # ask :branch, `git rev-parse --abbrev-ref HEAD`.chomp

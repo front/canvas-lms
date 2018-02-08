@@ -21,6 +21,15 @@ role :app, %w{178.79.171.242}
 role :web, %w{178.79.171.242}
 role :db,  %w{178.79.171.242}
 
+# Configuration
+# =============
+# You can set any configuration variable like in config/deploy.rb
+# These variables are then only loaded and set in this stage.
+# For available Capistrano configuration variables see the documentation page.
+# http://capistranorb.com/documentation/getting-started/configuration/
+# Feel free to add new variables to customise your setup.
+set :application, 'canvas'
+set :deploy_user, 'canvas'
 set :rails_env, 'production' # staging should work as production env
 
 # Unicorn settings
@@ -34,7 +43,6 @@ set :full_app_name, "#{fetch(:application)}_#{fetch(:stage)}"
 # Default deploy_to directory is /var/www/my_app_name
 set :deploy_to, "/home/#{fetch(:deploy_user)}/apps/#{fetch(:full_app_name)}"
 
-
 # Setup rbenv and ruby version
 set :rbenv_custom_path, "/home/#{fetch(:deploy_user)}/.rbenv"
 set :rbenv_type, :user
@@ -42,15 +50,6 @@ set :rbenv_ruby, '2.4.0'
 set :rbenv_prefix, "RBENV_ROOT=#{fetch(:rbenv_path)} RBENV_VERSION=#{fetch(:rbenv_ruby)} #{fetch(:rbenv_path)}/bin/rbenv exec"
 set :rbenv_map_bins, %w{rake gem bundle ruby rails}
 set :rbenv_roles, :all
-
-# Configuration
-# =============
-# You can set any configuration variable like in config/deploy.rb
-# These variables are then only loaded and set in this stage.
-# For available Capistrano configuration variables see the documentation page.
-# http://capistranorb.com/documentation/getting-started/configuration/
-# Feel free to add new variables to customise your setup.
-
 
 
 # Custom SSH Options
