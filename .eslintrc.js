@@ -2,12 +2,14 @@ module.exports = {
   env: {
     es6: true,
     amd: true,
-    browser: true
+    browser: true,
+    "jest/globals": true
   },
   extends: [
     "airbnb",
     "prettier",
     "prettier/react",
+    "plugin:jest/recommended",
   ],
   parserOptions: {
     ecmaVersion: 7,
@@ -25,7 +27,8 @@ module.exports = {
   },
   plugins: [
     "promise",
-    "import"
+    "import",
+    "jest"
   ],
   // 0 - off, 1 - warning, 2 - error
   rules: {
@@ -35,11 +38,13 @@ module.exports = {
     "func-names": [0],
     "max-len": [1, {"code": 140}],
     "no-continue": [0],
+    "react/no-typos": [0],
     "no-else-return": [0],
     "no-plusplus": [0],
     "no-return-assign": ['error', 'except-parens'],
     "no-underscore-dangle": [0],
     "no-unused-vars": [2, { "argsIgnorePattern": "^_"}],
+    "one-var": ["error", { initialized: "never" }], // allow `let foo, bar` but not `let foo=1, bar=2`
     "object-curly-spacing": [0],
     "padded-blocks": [0], // so we can have space between the define([... and the callback
     "semi": [0],
@@ -48,6 +53,8 @@ module.exports = {
     "import/no-unresolved": [0],
     "import/no-webpack-loader-syntax": [0],
     "import/no-commonjs": [2],
+    "jest/prefer-to-be-null": "error",
+    "jest/prefer-to-be-undefined": "error",
     "react/jsx-filename-extension": [2, { "extensions": [".js"] }],
     "import/extensions": [1, { "js": "never", "jsx": "never", "json": "always" }],
     "promise/avoid-new": [0],

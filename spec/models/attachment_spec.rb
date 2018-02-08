@@ -1119,14 +1119,53 @@ describe Attachment do
     context "sharding" do
       specs_require_sharding
 
-      it "returns the account_id relative to the current shard" do
-        birth_account = Shard.default.activate { Account.first }
-        Attachment.domain_namespace = birth_account.file_namespace
+      it "stores a local id on the birth shard" do
+        Attachment.domain_namespace = Account.default
+        att = Attachment.new
+        att.infer_namespace
+        expect(att.namespace).to eq Account.default.asset_string
+        expect(att.root_account_id).to eq Account.default.local_id
+        @shard1.activate do
+          expect(att.root_account_id).to eq Account.default.global_id
+        end
+      end
 
-        @shard1.activate {
-          a = Attachment.new
-          expect(a.root_account_id).to eq birth_account.global_id
-        }
+      it "stores a global id on all other shards" do
+        a = nil
+        att = nil
+        @shard1.activate do
+          a = Account.create!
+          Attachment.domain_namespace = a
+          att = Attachment.new
+          att.infer_namespace
+          expect(att.namespace).to eq a.global_asset_string
+          expect(att.root_account_id).to eq a.local_id
+        end
+        expect(att.root_account_id).to eq a.global_id
+      end
+
+      it "interprets root_account_id correctly, even when local on not the birth shard" do
+        a = nil
+        att = nil
+        @shard1.activate do
+          a = Account.create!
+          att = Attachment.new
+          att.namespace = a.asset_string
+          expect(att.root_account_id).to eq a.local_id
+        end
+        expect(att.root_account_id).to eq a.global_id
+      end
+
+      it "stores ID for a cross-shard attachment" do
+        Attachment.domain_namespace = Account.default
+        att = nil
+        @shard1.activate do
+          att = Attachment.new
+          att.infer_namespace
+          expect(att.namespace).to eq Account.default.global_asset_string
+          expect(att.root_account_id).to eq Account.default.global_id
+        end
+        expect(att.root_account_id).to eq Account.default.local_id
       end
     end
   end

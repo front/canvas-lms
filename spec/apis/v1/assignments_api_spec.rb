@@ -1398,18 +1398,33 @@ describe AssignmentsApiController, type: :request do
       expect(a.lti_context_id).to eq(lti_assignment_id)
     end
 
-    it "sets the configuration LTI 1 tool if one is provided" do
-      tool = @course.context_external_tools.create!(name: "a", url: "http://www.google.com", consumer_key: '12345', shared_secret: 'secret')
-      api_create_assignment_in_course(@course, {
-        'description' => 'description',
-        'similarityDetectionTool' => tool.id,
-        'configuration_tool_type' => 'ContextExternalTool',
-        'submission_type' => 'online',
-        'submission_types' => ['online_upload']
-      })
+    context 'set the configuration LTI 1 tool if provided' do
+      let(:tool) { @course.context_external_tools.create!(name: "a", url: "http://www.google.com", consumer_key: '12345', shared_secret: 'secret') }
+      let(:a) { Assignment.last }
 
-      a = Assignment.last
-      expect(a.tool_settings_tool).to eq(tool)
+      before do
+        api_create_assignment_in_course(@course, {
+          'description' => 'description',
+          'similarityDetectionTool' => tool.id,
+          'configuration_tool_type' => 'ContextExternalTool',
+          'submission_type' => 'online',
+          'submission_types' => submission_types
+        })
+      end
+
+      context 'with online_upload' do
+        let(:submission_types) { ['online_upload'] }
+        it "sets the configuration LTI 1 tool if one is provided" do
+          expect(a.tool_settings_tool).to eq(tool)
+        end
+      end
+
+      context 'with online_text_entry' do
+        let(:submission_types) { ['online_text_entry'] }
+        it "sets the configuration LTI 1 tool if one is provided" do
+          expect(a.tool_settings_tool).to eq(tool)
+        end
+      end
     end
 
     it "does set the visibility settings" do
@@ -1489,67 +1504,61 @@ describe AssignmentsApiController, type: :request do
         expect(new_assignment.tool_settings_tool).to eq message_handler
       end
 
-      it "sets the configuration LTI 2 tool in account context" do
-        account = @course.account
-        tool_proxy.update_attributes(context: account)
-        allow_any_instance_of(AssignmentConfigurationToolLookup).to receive(:create_subscription).and_return true
-        Lti::ToolProxyBinding.create(context: account, tool_proxy: tool_proxy)
-        api_create_assignment_in_course(@course, {
-          'description' => 'description',
-          'similarityDetectionTool' => message_handler.id,
-          'configuration_tool_type' => 'Lti::MessageHandler',
-          'submission_type' => 'online',
-          'submission_types' => ['online_upload']
-        })
-        a = Assignment.last
-        expect(a.tool_settings_tool).to eq(message_handler)
-      end
+      context 'sets the configuration LTI 2 tool' do
+        shared_examples_for 'sets the tools_settings_tool' do
+          let(:submission_types) { raise 'Override in spec' }
+          let(:context) { raise 'Override in spec' }
 
-      it "sets the configuration an LTI 2 tool in course context" do
-        allow_any_instance_of(AssignmentConfigurationToolLookup).to receive(:create_subscription).and_return true
-        account = @course.account
-        product_family = Lti::ProductFamily.create(
-          vendor_code: '123',
-          product_code: 'abc',
-          vendor_name: 'acme',
-          root_account: account
-        )
+          it 'sets the tool correctly' do
+            tool_proxy.update_attributes(context: context)
+            allow_any_instance_of(AssignmentConfigurationToolLookup).to receive(:create_subscription).and_return true
+            Lti::ToolProxyBinding.create(context: context, tool_proxy: tool_proxy)
+            api_create_assignment_in_course(
+              @course,
+              {
+                'description' => 'description',
+                'similarityDetectionTool' => message_handler.id,
+                'configuration_tool_type' => 'Lti::MessageHandler',
+                'submission_type' => 'online',
+                'submission_types' => submission_types
+              }
+            )
+            a = Assignment.last
+            expect(a.tool_settings_tool).to eq(message_handler)
+          end
+        end
 
-        tool_proxy = Lti:: ToolProxy.create(
-          shared_secret: 'shared_secret',
-          guid: 'guid',
-          product_version: '1.0beta',
-          lti_version: 'LTI-2p0',
-          product_family: product_family,
-          context: @course,
-          workflow_state: 'active',
-          raw_data: 'some raw data'
-        )
+        context 'in account context' do
+          context 'with online_upload' do
+            it_behaves_like 'sets the tools_settings_tool' do
+              let(:submission_types) { ['online_upload'] }
+              let(:context) { @course.account }
+            end
+          end
 
-        resource_handler = Lti::ResourceHandler.create(
-          resource_type_code: 'code',
-          name: 'resource name',
-          tool_proxy: tool_proxy
-        )
+          context 'with online_text_entry' do
+            it_behaves_like 'sets the tools_settings_tool' do
+              let(:submission_types) { ['online_text_entry'] }
+              let(:context) { @course.account }
+            end
+          end
+        end
 
-        message_handler = Lti::MessageHandler.create(
-          message_type: 'basic-lti-launch-request',
-          launch_path: 'https://samplelaunch/blti',
-          resource_handler: resource_handler
-        )
+        context 'in course context' do
+          context 'with online_upload' do
+            it_behaves_like 'sets the tools_settings_tool' do
+              let(:submission_types) { ['online_upload'] }
+              let(:context) { @course }
+            end
+          end
 
-        Lti::ToolProxyBinding.create(context: @course, tool_proxy: tool_proxy)
-
-        api_create_assignment_in_course(@course, {
-          'description' => 'description',
-          'similarityDetectionTool' => message_handler.id,
-          'configuration_tool_type' => 'Lti::MessageHandler',
-          'submission_type' => 'online',
-          'submission_types' => ['online_upload']
-        })
-
-        a = Assignment.last
-        expect(a.tool_settings_tool).to eq(message_handler)
+          context 'with online_text_entry' do
+            it_behaves_like 'sets the tools_settings_tool' do
+              let(:submission_types) { ['online_text_entry'] }
+              let(:context) { @course }
+            end
+          end
+        end
       end
     end
 
@@ -1786,7 +1795,7 @@ describe AssignmentsApiController, type: :request do
         api_call_to_update_adhoc_override(student_ids: [@student.id])
 
         ao = @assignment.assignment_overrides.where(set_type: 'ADHOC').first
-        expect(AssignmentOverrideStudent.count).to eq 1
+        expect(AssignmentOverrideStudent.active.count).to eq 1
       end
 
       it 'allows the update of an adhoc override with different student' do
@@ -3500,6 +3509,7 @@ describe AssignmentsApiController, type: :request do
         expect(json['discussion_topic']).to eq({
           'author' => {},
           'id' => @topic.id,
+          'is_section_specific' => @topic.is_section_specific,
           'title' => 'assignment1',
           'message' => nil,
           'posted_at' => @topic.posted_at.as_json,
@@ -3531,7 +3541,7 @@ describe AssignmentsApiController, type: :request do
           'html_url' =>
             "http://www.example.com/courses/#{@course.id}/discussion_topics/#{@topic.id}",
           'attachments' => [],
-          'permissions' => {'delete' => true, 'attach' => true, 'update' => true, 'reply' => true},
+          'permissions' => {'attach' => true, 'update' => true, 'reply' => true, 'delete' => true},
           'discussion_type' => 'side_comment',
           'group_category_id' => nil,
           'can_group' => true,
@@ -4196,7 +4206,6 @@ describe AssignmentsApiController, type: :request do
 
     it "should preload student_ids when including adhoc overrides" do
       expect_any_instantiation_of(@override).to receive(:assignment_override_students).never
-
       json = api_call_as_user(@teacher, :get,
         "/api/v1/courses/#{@course.id}/assignments?include[]=overrides",
         { :controller => 'assignments_api',
@@ -4210,7 +4219,6 @@ describe AssignmentsApiController, type: :request do
       # yeah i know this is a separate api; sue me
 
       expect_any_instantiation_of(@override).to receive(:assignment_override_students).never
-
       json = api_call_as_user(@teacher, :get,
         "/api/v1/courses/#{@course.id}/assignment_groups?include[]=assignments&include[]=overrides",
         { :controller => 'assignment_groups',

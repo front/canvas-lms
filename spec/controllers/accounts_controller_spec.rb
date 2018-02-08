@@ -228,6 +228,18 @@ describe AccountsController do
         get 'show', params: {:id => @account1.id }, :format => 'html'
         expect(assigns[:associated_courses_count]).to eq 1
       end
+
+      it "if crosslisted a section to another account, do show other if that param is not set" do
+        account_with_admin_logged_in(account: @account2)
+        get 'show', params: {:id => @account2.id, :include_crosslisted_courses => true}, :format => 'html'
+        expect(assigns[:associated_courses_count]).to eq 2
+      end
+
+      it "if crosslisted a section to this account, do *not* show other account's course even if param is not set" do
+        account_with_admin_logged_in(account: @account1)
+        get 'show', params: {:id => @account1.id, :include_crosslisted_courses => true}, :format => 'html'
+        expect(assigns[:associated_courses_count]).to eq 1
+      end
     end
 
     # Check that both published and un-published courses have the correct count
@@ -326,6 +338,20 @@ describe AccountsController do
   end
 
   describe "update" do
+    it "should update 'app_center_access_token'" do
+      account_with_admin_logged_in
+      @account = @account.sub_accounts.create!
+      access_token = SecureRandom.uuid
+      post 'update', params: { id: @account.id,
+                               account: {
+                                settings: {
+                                  app_center_access_token: access_token
+                                }
+                              }}
+      @account.reload
+      expect(@account.settings[:app_center_access_token]).to eq access_token
+    end
+
     it "should update account with sis_assignment_name_length_input with value less than 255" do
       account_with_admin_logged_in
       @account = @account.sub_accounts.create!
@@ -766,6 +792,48 @@ describe AccountsController do
     account_with_admin_logged_in(account: account)
   end
 
+  describe "terms of service" do
+    before do
+      @account = Account.create!
+      course_with_teacher(:account => @account)
+      c1 = @course
+      course_with_teacher(:course => c1)
+      @student = User.create
+      c1.enroll_user(@student, "StudentEnrollment", :enrollment_state => 'active')
+      c1.save
+    end
+
+    it "should return the terms of service content" do
+      @account.update_terms_of_service(terms_type: "custom", content: "custom content")
+
+      admin_logged_in(@account)
+      get 'terms_of_service', params: {account_id: @account.id}
+
+      expect(response).to be_success
+      expect(response.body).to match(/\"content\":\"custom content\"/)
+    end
+
+    it "should return the terms of service content as student" do
+      @account.update_terms_of_service(terms_type: "custom", content: "custom content")
+
+      user_session(@teacher)
+      get 'terms_of_service', params: {account_id: @account.id}
+
+      expect(response).to be_success
+      expect(response.body).to match(/\"content\":\"custom content\"/)
+    end
+
+    it "should return the terms of service content as teacher" do
+      @account.update_terms_of_service(terms_type: "custom", content: "custom content")
+
+      user_session(@student)
+      get 'terms_of_service', params: {account_id: @account.id}
+
+      expect(response).to be_success
+      expect(response.body).to match(/\"content\":\"custom content\"/)
+    end
+  end
+
   describe "#account_courses" do
     before do
       @account = Account.create!
@@ -1017,6 +1085,12 @@ describe AccountsController do
           {"name" => "bar", "total_students" => 0},
           {"name" => "foo", "total_students" => 0}
         ].map{ |attrs| a_hash_including(attrs) })
+      end
+
+      it "should not explode when calculating total_students and searching by course id" do
+        admin_logged_in(@account)
+        get 'courses_api', params: {account_id: @account.id, sort: "total_students", search_term: @course.id.to_s}
+        expect(response).to be_success
       end
     end
 

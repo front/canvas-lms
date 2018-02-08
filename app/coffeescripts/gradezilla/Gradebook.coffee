@@ -25,25 +25,25 @@ define [
   'react'
   'react-dom'
   'slickgrid.long_text_editor'
-  'compiled/views/KeyboardNavDialog'
+  '../views/KeyboardNavDialog'
   'jst/KeyboardNavDialog'
-  'compiled/api/gradingPeriodsApi'
-  'compiled/api/gradingPeriodSetsApi'
-  'compiled/views/InputFilterView'
+  '../api/gradingPeriodsApi'
+  '../api/gradingPeriodSetsApi'
+  '../views/InputFilterView'
   'i18nObj'
   'i18n!gradezilla'
   'jsx/shared/helpers/numberHelper'
-  'compiled/gradezilla/GradebookTranslations'
+  '../gradezilla/GradebookTranslations'
   'jsx/gradebook/CourseGradeCalculator'
   'jsx/gradebook/EffectiveDueDates'
   'jsx/gradebook/shared/helpers/GradeFormatHelper'
-  'compiled/userSettings'
+  '../userSettings'
   'spin.js'
-  'compiled/AssignmentMuter'
-  'compiled/shared/GradeDisplayWarningDialog'
-  'compiled/gradezilla/PostGradesFrameDialog'
-  'compiled/util/NumberCompare'
-  'compiled/util/natcompare'
+  '../AssignmentMuter'
+  '../shared/GradeDisplayWarningDialog'
+  '../gradezilla/PostGradesFrameDialog'
+  '../util/NumberCompare'
+  '../util/natcompare'
   'convert_case'
   'str/htmlEscape'
   'jsx/gradezilla/shared/EnterGradesAsSetting'
@@ -72,27 +72,27 @@ define [
   'jsx/gradezilla/SubmissionStateMap'
   'jsx/gradezilla/shared/DownloadSubmissionsDialogManager'
   'jsx/gradezilla/shared/ReuploadSubmissionsDialogManager'
-  'compiled/gradezilla/GradebookKeyboardNav'
+  '../gradezilla/GradebookKeyboardNav'
   'jsx/gradezilla/shared/AssignmentMuterDialogManager'
   'jsx/gradezilla/shared/helpers/assignmentHelper'
   'jsx/gradezilla/shared/helpers/TextMeasure'
   'jsx/grading/helpers/OutlierScoreHelper'
   'jsx/grading/LatePolicyApplicator'
-  'instructure-ui/lib/components/Button'
+  '@instructure/ui-core/lib/components/Button'
   'instructure-icons/lib/Solid/IconSettingsSolid'
   'jsx/shared/FlashAlert'
   'jquery.ajaxJSON'
   'jquery.instructure_date_and_time'
   'jqueryui/dialog'
   'jqueryui/tooltip'
-  'compiled/behaviors/tooltip'
-  'compiled/behaviors/activate'
+  '../behaviors/tooltip'
+  '../behaviors/activate'
   'jquery.instructure_misc_helpers'
   'jquery.instructure_misc_plugins'
   'vendor/jquery.ba-tinypubsub'
   'jqueryui/position'
-  'compiled/jquery.kylemenu'
-  'compiled/jquery/fixDialogButtons'
+  '../jquery.kylemenu'
+  '../jquery/fixDialogButtons'
   'jsx/context_cards/StudentContextCardTrigger'
 ], ($, _, axios, tz, DataLoader, React, ReactDOM, LongTextEditor, KeyboardNavDialog, KeyboardNavTemplate,
   GradingPeriodsApi, GradingPeriodSetsApi, InputFilterView, i18nObj, I18n, numberHelper, GRADEBOOK_TRANSLATIONS,
@@ -226,8 +226,7 @@ define [
   class Gradebook
     columnWidths =
       assignment:
-        min: 10
-        default_max: 200
+        min: 214
         max: 400
       assignmentGroup:
         min: 35
@@ -1346,8 +1345,7 @@ define [
         locale: @options.locale
         onClose: => @gradebookSettingsModalButton.focus()
         onLatePolicyUpdate: @onLatePolicyUpdate
-        newGradebookDevelopmentEnabled: @options.new_gradebook_development_enabled
-        gradedLateOrMissingSubmissionsExist: @options.graded_late_or_missing_submissions_exist
+        gradedLateSubmissionsExist: @options.graded_late_submissions_exist
       @gradebookSettingsModal = renderComponent(
         GradebookSettingsModal,
         gradebookSettingsModalMountPoint,
@@ -1480,16 +1478,13 @@ define [
     # Assignment Column
 
     buildAssignmentColumn: (assignment) ->
-      shrinkForOutOfText = assignment && assignment.grading_type == 'points' && assignment.points_possible?
-      minWidth = if shrinkForOutOfText then 140 else 90
-
       columnId = @getAssignmentColumnId(assignment.id)
       fieldName = "assignment_#{assignment.id}"
 
       if @gradebookColumnSizeSettings && @gradebookColumnSizeSettings[fieldName]
         assignmentWidth = parseInt(@gradebookColumnSizeSettings[fieldName])
       else
-        assignmentWidth = testWidth(assignment.name, minWidth, columnWidths.assignment.default_max)
+        assignmentWidth = columnWidths.assignment.min
 
       columnDef =
         id: columnId
@@ -1502,13 +1497,9 @@ define [
         width: assignmentWidth
         cssClass: "assignment #{columnId}"
         headerCssClass: "assignment #{columnId}"
-        toolTip: htmlEscape(assignment.name)
+        toolTip: assignment.name
         type: 'assignment'
         assignmentId: assignment.id
-
-      unless columnDef.width > columnDef.minWidth
-        columnDef.cssClass += ' minimized'
-        columnDef.headerCssClass += ' minimized'
 
       columnDef
 
@@ -1526,7 +1517,7 @@ define [
       {
         id: columnId
         field: fieldName
-        toolTip: htmlEscape(assignmentGroup.name)
+        toolTip: assignmentGroup.name
         object: assignmentGroup
         minWidth: columnWidths.assignmentGroup.min
         maxWidth: columnWidths.assignmentGroup.max
@@ -2137,7 +2128,9 @@ define [
       comments: comments
       courseId: @options.context_id
       currentUserId: @options.currentUserId
+      enterGradesAs: @getEnterGradesAsSetting(assignmentId)
       gradingDisabled: !!submissionState?.locked || student.isConcluded
+      gradingScheme: @getAssignmentGradingScheme(assignmentId).data
       isFirstAssignment: isFirstAssignment
       isInOtherGradingPeriod: !!submissionState?.inOtherGradingPeriod
       isInClosedGradingPeriod: !!submissionState?.inClosedGradingPeriod
@@ -2538,6 +2531,8 @@ define [
 
       forEachSubmission(@students, (submission) =>
         assignment = @assignments[submission.assignment_id]
+        student = @student(submission.user_id)
+        return if student?.isConcluded
         return if @getGradingPeriod(submission.grading_period_id)?.isClosed
         if LatePolicyApplicator.processSubmission(submission, assignment, gradingStandard, latePolicy)
           studentsToInvalidate[submission.user_id] = true

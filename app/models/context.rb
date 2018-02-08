@@ -54,6 +54,12 @@ module Context
       Eportfolio: :Eportfolio
   }.freeze
 
+  def clear_cached_short_name
+    self.class.connection.after_transaction_commit do
+      Rails.cache.delete(['short_name_lookup', self.asset_string].cache_key)
+    end
+  end
+
   def add_aggregate_entries(entries, feed)
     entries.each do |entry|
       user = entry.user || feed.user
@@ -199,15 +205,11 @@ module Context
   end
 
   def self.asset_name(asset)
-    if asset.respond_to?(:display_name)
-      asset.display_name
-    elsif asset.respond_to?(:title)
-      asset.title
-     elsif asset.respond_to?(:short_description)
-      asset.short_description
-    else
-      asset.name
-    end
+    name = asset.display_name.presence if asset.respond_to?(:display_name)
+    name ||= asset.title.presence if asset.respond_to?(:title)
+    name ||= asset.short_description.presence if asset.respond_to?(:short_description)
+    name ||= asset.name
+    name
   end
 
   def self.get_account(context)

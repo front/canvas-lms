@@ -494,6 +494,39 @@ describe CoursesController, type: :request do
       course_ids = json.select{ |c| c["id"]}
       expect(course_ids.length).to eq 2
     end
+
+    it "should check include permissions against the caller" do
+      json = api_call_as_user(@admin, :get, "/api/v1/users/#{@student.id}/courses",
+                              { :user_id => @student.to_param, :controller => 'courses', :action => 'user_index',
+                                :format => 'json' })
+      entry = json.detect { |course| course['id'] == @course.id }
+      expect(entry['sis_course_id']).to eq 'TEST-SIS-ONE.2011'
+    end
+
+    it "should return course progress for the subject" do
+      mod = @course.context_modules.create!(:name => "some module")
+      assignment = @course.assignments.create!(:title => "some assignment", :submission_types => ['online_text_entry'])
+      tag = mod.add_item({:id => assignment.id, :type => 'assignment'})
+      mod.completion_requirements = {tag.id => {:type => 'must_submit'}}
+      mod.publish
+      mod.save!
+      assignment.submit_homework(@student, :submission_type => "online_text_entry", :body => "herp")
+      json = api_call_as_user(@admin, :get, "/api/v1/users/#{@student.id}/courses?include[]=course_progress",
+                              { :user_id => @student.to_param, :controller => 'courses', :action => 'user_index',
+                                :format => 'json', :include => ['course_progress'] })
+      entry = json.detect { |course| course['id'] == @course.id }
+      expect(entry['course_progress']['requirement_completed_count']).to eq 1
+    end
+
+    it "should use the caller's course nickname, not the subject's" do
+      @student.course_nicknames[@course.id] = 'terrible'; @student.save!
+      @admin.course_nicknames[@course.id] = 'meh'; @admin.save!
+      json = api_call_as_user(@admin, :get, "/api/v1/users/#{@student.id}/courses",
+                              { :user_id => @student.to_param, :controller => 'courses', :action => 'user_index',
+                                :format => 'json' })
+      entry = json.detect { |course| course['id'] == @course.id }
+      expect(entry['name']).to eq 'meh'
+    end
   end
 
   it 'should paginate the course list' do
@@ -2659,6 +2692,27 @@ describe CoursesController, type: :request do
         expect(json.map { |u| u['login_id'] }.sort).to eq ["nobody@example.com", "nobody2@example.com"].sort
       end
 
+      describe "localized sorting" do
+        before do
+          skip("require pg_collkey") unless ActiveRecord::Base.connection.extension_installed?(:pg_collkey)
+        end
+
+        it "should use course-level locale setting for sorting" do
+          n1 = "bee"
+          @student1.update_attribute(:sortable_name, n1)
+          n2 = "æee"
+          @student2.update_attribute(:sortable_name, n2)
+          json = api_call(:get, "/api/v1/courses/#{@course1.id}/users.json", { :controller => 'courses', :action => 'users', :course_id => @course1.id.to_s, :format => 'json' })
+          names = json.map{|s| s["sortable_name"]}
+          expect(names.index(n1) > names.index(n2)).to be_truthy
+
+          @course1.update_attribute(:locale, "is")
+          json = api_call(:get, "/api/v1/courses/#{@course1.id}/users.json", { :controller => 'courses', :action => 'users', :course_id => @course1.id.to_s, :format => 'json' })
+          names = json.map{|s| s["sortable_name"]}
+          expect(names.index(n2) > names.index(n1)).to be_truthy
+        end
+      end
+
       describe "as a student" do
         before :once do
           @other_user = user_with_pseudonym(:name => 'Waldo', :username => 'dontfindme@example.com')
@@ -2810,6 +2864,16 @@ describe CoursesController, type: :request do
       json = api_call(:get, "/api/v1/courses/#{@course1.id}/users/sis_user_id:#{pseudonym.sis_user_id}.json",
         { controller: 'courses', action: 'user', course_id: @course1.id.to_s, id: "sis_user_id:#{pseudonym.sis_user_id}", :format => 'json' })
       expect(response.code).to eq '200'
+    end
+
+    it "shouldn't show other course enrollments to other students" do
+      @me = @student
+      student2 = student_in_course(course: @course1, name: "student").user
+      @course2.enroll_student(student2)
+      json = api_call(:get, "/api/v1/courses/#{@course1.id}/users/#{student2.id}.json?include[]=enrollments",
+        { controller: 'courses', action: 'user', course_id: @course1.id.to_s, id: student2.id.to_s, include: ['enrollments'], :format => 'json' })
+      course_ids = json["enrollments"].map{|e| e["course_id"]}
+      expect(course_ids).to eq [@course1.id]
     end
   end
 

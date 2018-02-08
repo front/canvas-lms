@@ -23,17 +23,17 @@
 
 define [
   'timezone'
-  'compiled/util/enrollmentName'
+  './util/enrollmentName'
   'handlebars/runtime'
   'i18nObj'
   'jquery'
   'underscore'
   'str/htmlEscape'
-  'compiled/util/semanticDateRange'
-  'compiled/util/dateSelect'
-  'compiled/util/mimeClass'
-  'compiled/str/apiUserContent'
-  'compiled/str/TextHelper'
+  './util/semanticDateRange'
+  './util/dateSelect'
+  './util/mimeClass'
+  './str/apiUserContent'
+  './str/TextHelper'
   'jsx/shared/helpers/numberFormat'
   'jquery.instructure_date_and_time'
   'jquery.instructure_misc_helpers'
@@ -161,12 +161,16 @@ define [
     # convert a date to a string, using the given i18n format in the date.formats namespace
     tDateToString : (date = '', i18n_format) ->
       return '' unless date
-      I18n.l "date.formats.#{i18n_format}", date
+      date = tz.parse(date) unless _.isDate date
+      fudged = $.fudgeDateForProfileTimezone(tz.parse(date))
+      I18n.l "date.formats.#{i18n_format}", fudged
 
     # convert a date to a time string, using the given i18n format in the time.formats namespace
     tTimeToString : (date = '', i18n_format) ->
       return '' unless date
-      I18n.l "time.formats.#{i18n_format}", date
+      date = tz.parse(date) unless _.isDate date
+      fudged = $.fudgeDateForProfileTimezone(tz.parse(date))
+      I18n.l "time.formats.#{i18n_format}", fudged
 
     tTimeHours : (date = '') ->
       if date.getMinutes() == 0 and date.getSeconds() == 0

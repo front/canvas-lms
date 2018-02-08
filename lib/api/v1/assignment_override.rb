@@ -291,6 +291,7 @@ module Api::V1::AssignmentOverride
         else
           # link will be saved with the override
           link = override.assignment_override_students.build
+          link.workflow_state = 'active'
           link.assignment_override = override
           link.user = student
           override.changed_student_ids << student.id
@@ -301,6 +302,7 @@ module Api::V1::AssignmentOverride
         override.changed_student_ids.merge(defunct_student_ids)
         override.assignment_override_students.
           where(:user_id => defunct_student_ids.to_a).
+          in_batches.
           delete_all
       end
     end

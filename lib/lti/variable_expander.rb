@@ -52,6 +52,7 @@ module Lti
     COURSE_GUARD = -> { @context.is_a? Course }
     TERM_START_DATE_GUARD = -> { @context.is_a?(Course) && @context.enrollment_term &&
                                  @context.enrollment_term.start_at }
+    TERM_NAME_GUARD = -> { @context.is_a?(Course) && @context.enrollment_term&.name }
     USER_GUARD = -> { @current_user }
     SIS_USER_GUARD = -> { @current_user && @current_user.pseudonym && @current_user.pseudonym.sis_user_id }
     PSEUDONYM_GUARD = -> { sis_pseudonym }
@@ -67,6 +68,7 @@ module Lti
     MASQUERADING_GUARD = -> { !!@controller && @controller.logged_in_user != @current_user }
     MESSAGE_TOKEN_GUARD = -> { @post_message_token.present? || @launch&.instance_of?(Lti::Launch) }
     ORIGINALITY_REPORT_GUARD = -> { @originality_report.present? }
+    ORIGINALITY_REPORT_ATTACHMENT_GUARD = -> { @originality_report&.attachment.present? }
     LTI_ASSIGN_ID = -> { @assignment.present? || @originality_report.present? || @secure_params.present? }
     EDITOR_CONTENTS_GAURD = -> { @editor_contents.present? }
     EDITOR_SELECTION_GAURD = -> { @editor_contents.present? }
@@ -216,7 +218,7 @@ module Lti
     #   ```
     register_expansion 'com.instructure.File.id', [],
                      -> { @originality_report.attachment.id },
-                     ORIGINALITY_REPORT_GUARD,
+                     ORIGINALITY_REPORT_ATTACHMENT_GUARD,
                      default_name: 'com_instructure_file_id'
 
     # the LIS identifier for the course offering
@@ -516,6 +518,16 @@ module Lti
                        -> { @context.enrollment_term.start_at },
                        TERM_START_DATE_GUARD
 
+    # returns the current course's term name.
+    # @example
+    #   ```
+    #   W1 2017
+    #   ```
+    register_expansion 'Canvas.term.name', [],
+                        -> { @context.enrollment_term.name },
+                        TERM_NAME_GUARD,
+                        default_name: 'canvas_term_name'
+
     # returns the current course sis source id
     # to return the section source id use Canvas.course.sectionIds
     # @launch_parameter lis_course_section_sourcedid
@@ -555,17 +567,27 @@ module Lti
                        -> { lti_helper.concluded_lis_roles },
                        COURSE_GUARD
 
-    # Returns the context ids from the course that the current course was copied from (excludes cartridge imports).
+    # With respect to the current course, returns the context ids of the courses from which content has been copied (excludes cartridge imports).
     #
     # @example
     #   ```
-    #   1234
+    #   1234,4567
     #   ```
     register_expansion 'Canvas.course.previousContextIds', [],
                        -> { lti_helper.previous_lti_context_ids },
                        COURSE_GUARD
 
-    # Returns the course ids of the course that the current course was copied from (excludes cartridge imports).
+    # With respect to the current course, recursively returns the context ids of the courses from which content has been copied (excludes cartridge imports).
+    #
+    # @example
+    #   ```
+    #   1234,4567
+    #   ```
+    register_expansion 'Canvas.course.previousContextIds.recursive', [],
+                       -> { lti_helper.recursively_fetch_previous_lti_context_ids },
+                       COURSE_GUARD
+
+    # With respect to the current course, returns the course ids of the courses from which content has been copied (excludes cartridge imports).
     #
     # @example
     #   ```
@@ -585,6 +607,17 @@ module Lti
                        -> { @current_user.name },
                        USER_GUARD,
                        default_name: 'lis_person_name_full'
+
+    # Returns the display name of the launching user.
+    # @launch_parameter lis_person_name_full
+    # @example
+    #   ```
+    #   John Doe
+    #   ```
+    register_expansion 'Person.name.display', [],
+                       -> { @current_user.short_name },
+                       USER_GUARD,
+                       default_name: 'person_name_display'
 
     # Returns the last name of the launching user.
     # @launch_parameter lis_person_name_family

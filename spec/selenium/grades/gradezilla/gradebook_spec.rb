@@ -71,13 +71,12 @@ describe "Gradezilla" do
 
     it "handles muting correctly", priority: "1", test_id: 164227 do
       # TODO "change test ids when Gradezilla test cases are created"
-      expect(fj(Gradezilla.assignment_header_mute_icon_selector(@second_assignment.id))).to be_displayed
       expect(Gradezilla.total_cell_mute_icon_select).to be_displayed
       expect(@second_assignment.reload).to be_muted
 
       # reload the page and make sure it remembered the setting
       Gradezilla.visit(@course)
-      expect(fj(Gradezilla.assignment_header_mute_icon_selector(@second_assignment.id))).to be_displayed
+      expect(Gradezilla.total_cell_mute_icon_select).to be_displayed
     end
 
     it "handles un-muting correctly", priority: "1", test_id: 164227 do
@@ -85,7 +84,7 @@ describe "Gradezilla" do
       # make sure you can un-mute
       Gradezilla.toggle_assignment_muting(@second_assignment.id)
 
-      expect(Gradezilla.content_selector).not_to contain_jqcss(Gradezilla.assignment_header_mute_icon_selector(@second_assignment.id))
+      expect(Gradezilla.content_selector).not_to contain_css(".total-cell .icon-muted")
       expect(@second_assignment.reload).not_to be_muted
     end
   end
@@ -253,7 +252,7 @@ describe "Gradezilla" do
 
     Gradezilla.visit(@course)
 
-    f('.Gradebook__ColumnHeaderAction').click
+    f('.Gradebook__ColumnHeaderAction button').click
     expect(f('.gradebook-header-menu')).not_to include_text("SpeedGrader")
   end
 
@@ -303,15 +302,15 @@ describe "Gradezilla" do
     let(:essay_text) { {"question_#{essay_question.id}" => "Essay Response!"} }
     let(:file_submission) { file_question.generate_submission(student) }
 
-    it 'displays the quiz icon for essay questions', priority: "1", test_id: 229430 do
+    it 'displays the "needs grading" icon for essay questions', priority: "1", test_id: 229430 do
       essay_submission.complete!(essay_text)
       user_session(teacher)
 
       Gradezilla.visit(test_course)
-      expect(f('#gradebook_grid .icon-quiz')).to be_truthy
+      expect(f('#gradebook_grid .icon-not-graded')).to be_truthy
     end
 
-    it 'displays the quiz icon for file_upload questions', priority: "1", test_id: 498844 do
+    it 'displays the "needs grading" icon for file_upload questions', priority: "1", test_id: 498844 do
       file_submission.attachments.create!({
                                             :filename => "doc.doc",
                                             :display_name => "doc.doc", :user => @user,
@@ -321,21 +320,21 @@ describe "Gradezilla" do
       user_session(teacher)
 
       Gradezilla.visit(test_course)
-      expect(f('#gradebook_grid .icon-quiz')).to be_truthy
+      expect(f('#gradebook_grid .icon-not-graded')).to be_truthy
     end
 
-    it 'removes the quiz icon when graded manually', priority: "1", test_id: 491040 do
+    it 'removes the "needs grading" icon when graded manually', priority: "1", test_id: 491040 do
       essay_submission.complete!(essay_text)
       user_session(teacher)
 
       Gradezilla.visit(test_course)
       # in order to get into edit mode with an icon in the way, a total of 3 clicks are needed
-      f('#gradebook_grid .icon-quiz').click
+      f('#gradebook_grid .icon-not-graded').click
       double_click('.online_quiz')
 
       replace_value('#gradebook_grid input.grade', '10')
       f('#gradebook_grid input.grade').send_keys(:enter)
-      expect(f('#gradebook_grid')).not_to contain_css('.icon-quiz')
+      expect(f('#gradebook_grid')).not_to contain_css('.icon-not-graded')
     end
   end
 end

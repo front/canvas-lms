@@ -20,16 +20,16 @@ define [
   'i18n!outcomes'
   'jquery'
   'underscore'
-  'compiled/views/PaginatedView'
-  'compiled/models/OutcomeGroup'
-  'compiled/collections/OutcomeCollection'
-  'compiled/collections/OutcomeGroupCollection'
-  'compiled/views/outcomes/OutcomeGroupIconView'
-  'compiled/views/outcomes/OutcomeIconView'
+  '../PaginatedView'
+  '../../models/OutcomeGroup'
+  '../../collections/OutcomeCollection'
+  '../../collections/OutcomeGroupCollection'
+  './OutcomeGroupIconView'
+  './OutcomeIconView'
   'str/htmlEscape'
   'jquery.disableWhileLoading'
   'jqueryui/droppable'
-  'compiled/jquery.rails_flash_notifications'
+  '../../jquery.rails_flash_notifications'
 ], (I18n, $, _, PaginatedView, OutcomeGroup, OutcomeCollection, OutcomeGroupCollection, OutcomeGroupIconView, OutcomeIconView, htmlEscape) ->
 
   # The outcome group "directory" browser.
@@ -116,21 +116,15 @@ define [
         $.flashError I18n.t 'flash.error', "An error occurred. Please refresh the page and try again."
 
       # create new link
-      outcome.setUrlTo 'delete'
-      unlinkUrl = outcome.url
+      oldGroup = outcome.outcomeGroup
       outcome.outcomeGroup = newGroup
       outcome.setUrlTo 'add'
-      $.ajaxJSON(outcome.url, 'POST', outcome_id: outcome.get 'id')
+      $.ajaxJSON(outcome.url, 'POST', {outcome_id: outcome.get('id'), move_from: oldGroup.id})
         .done( (modelData) ->
           # reset urls etc.
           outcome.set outcome.parse(modelData)
-          # new link created, now remove old link
-          $.ajaxJSON(unlinkUrl, 'DELETE')
-            .done( ->
-              # old link removed
-              $.flashMessage I18n.t 'flash.updateSuccess', 'Update successful'
-              disablingDfd.resolve())
-            .fail onFail)
+          $.flashMessage I18n.t 'flash.updateSuccess', 'Update successful'
+          disablingDfd.resolve())
         .fail onFail
 
       disablingDfd

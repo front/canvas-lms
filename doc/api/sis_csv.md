@@ -277,8 +277,8 @@ still be provided.</td>
 </tr>
 </table>
 
-<p>The user's name (either first_name and last_name, or full_name) should always
-be provided. Otherwise, the name will be blanked out.</p>
+<p>At least one form of name should be supplied. If a user is being created and no name is given,
+the login_id will be used as the name.</p>
 
 
 <p>When a user is 'deleted' it will delete the login tied to the sis_id.
@@ -399,6 +399,19 @@ interface, this is called the SIS ID.</td>
 <td></td>
 <td></td>
 <td>Sets the integration_id of the term</td>
+</tr>
+<tr>
+<td>date_override_enrollment_type</td>
+<td>text</td>
+<td></td>
+<td></td>
+<td>
+When set, all columns except term_id, status, start_date, and end_date will be ignored for this row.
+ Can only be used for an existing term.
+ If status is active, the term dates will be set to apply only to enrollments of the given type.
+ If status is deleted, the currently set dates for the given enrollment type will be removed.
+ Must be one of StudentEnrollment, TeacherEnrollment, TaEnrollment, or DesignerEnrollment.
+</td>
 </tr>
 <tr>
 <td>start_date</td>
@@ -997,17 +1010,33 @@ change_sis_id.csv
 <tr>
 <td>old_id</td>
 <td>text</td>
-<td>✓</td>
+<td>✓&#42;</td>
 <td></td>
 <td>The current sis_id of the object that should be changed.</td>
 </tr>
 <tr>
 <td>new_id</td>
 <td>text</td>
-<td>✓</td>
+<td>✓&#42;</td>
 <td></td>
 <td>The desired sis_id of the object. This id must be currently unique to the
 object type and the root_account.</td>
+</tr>
+<tr>
+<td>old_integration_id</td>
+<td>text</td>
+<td>✓&#42;</td>
+<td></td>
+<td>The current integration_id of the object that should be changed.</td>
+</tr>
+<tr>
+<td>new_integration_id</td>
+<td>text</td>
+<td>✓&#42;</td>
+<td></td>
+<td>The desired integration_id of the object. This id must be currently unique
+to the object type and the root_account. Can pass "&lt;delete>" to
+remove the integration_id from the object.</td>
 </tr>
 <tr>
 <td>type</td>
@@ -1018,14 +1047,20 @@ object type and the root_account.</td>
 </tr>
 </table>
 
+&#42; old_id or old_integration_id is required, new_id or new_integration_id is
+required.
+
 change_sis_id.csv is optional. The goal of change_sis_id.csv is to provide a
-way to change sis_ids of existing objects. If included in a zip file this file
-will process first. All other files should include the new ids.
+way to change sis_ids or integration_ids of existing objects. If included in a
+zip file this file will process first. All other files should include the new
+ids.
 
 Sample:
 
-<pre>old_id,new_id,type
+<pre>old_id,new_id,old_integration_id,new_integration_id,type
 u001,u001a,user
 couse1,old_course1,course
 term1,fall17,term
+u001,,,<delete>,user
+,,integration01,int01,section
 </pre>

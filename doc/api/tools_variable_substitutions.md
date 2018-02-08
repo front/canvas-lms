@@ -480,6 +480,15 @@ returns the current course's term start date.
 ```
 YYY-MM-DD HH:MM:SS -0700
 ```
+## Canvas.term.name
+returns the current course's term name.
+
+**Availability**: **  
+**Launch Parameter**: *canvas_term_name*  
+
+```
+W1 2017
+```
 ## CourseSection.sourcedId
 returns the current course sis source id
 to return the section source id use Canvas.course.sectionIds.
@@ -518,16 +527,25 @@ This is a list of IMS LIS roles should have a different key.
 urn:lti:sysrole:ims/lis/None
 ```
 ## Canvas.course.previousContextIds
-Returns the context ids from the course that the current course was copied from (excludes cartridge imports).
+With respect to the current course, returns the context ids of the courses from which content has been copied (excludes cartridge imports).
 
 **Availability**: *when launched in a course*  
 
 
 ```
-1234
+1234,4567
+```
+## Canvas.course.previousContextIds.recursive
+With respect to the current course, recursively returns the context ids of the courses from which content has been copied (excludes cartridge imports).
+
+**Availability**: *when launched in a course*  
+
+
+```
+1234,4567
 ```
 ## Canvas.course.previousCourseIds
-Returns the course ids of the course that the current course was copied from (excludes cartridge imports).
+With respect to the current course, returns the course ids of the courses from which content has been copied (excludes cartridge imports).
 
 **Availability**: *when launched in a course*  
 
@@ -540,6 +558,15 @@ Returns the full name of the launching user.
 
 **Availability**: *when launched by a logged in user*  
 **Launch Parameter**: *lis_person_name_full*  
+
+```
+John Doe
+```
+## Person.name.display
+Returns the display name of the launching user.
+
+**Availability**: *when launched by a logged in user*  
+**Launch Parameter**: *person_name_display*  
 
 ```
 John Doe

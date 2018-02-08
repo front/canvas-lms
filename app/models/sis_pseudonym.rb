@@ -33,7 +33,9 @@ class SisPseudonym
   end
 
   def pseudonym
-    result = find_in_home_account || find_in_other_accounts
+    result = @context.sis_pseudonym if @context.class <= Enrollment
+    result ||= find_in_home_account
+    result ||= find_in_other_accounts
     if result
       result.account = root_account if result.account_id == root_account.id
     end
@@ -115,7 +117,9 @@ class SisPseudonym
                  # false sorts before true
                  relation.order("sis_user_id IS NULL")
                end
-    relation = relation.order(Pseudonym.best_unicode_collation_key(:unique_id))
+    relation.primary_shard.activate do
+      relation = relation.order(Pseudonym.best_unicode_collation_key(:unique_id))
+    end
     if type == :implicit
       relation.detect { |p| p.works_for_account?(root_account, true) }
     else

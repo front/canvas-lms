@@ -19,7 +19,7 @@
 require_relative '../sharding_spec_helper'
 
 describe GradeCalculator do
-  before :once do
+  before :each do
     course_with_student active_all: true
   end
 
@@ -113,6 +113,49 @@ describe GradeCalculator do
       expect {
         GradeCalculator.recompute_final_score(@user.id, @course.id)
       }.to change{stale_score.reload.workflow_state}.from('active').to('deleted')
+    end
+
+    it "gracefully handles missing submissions" do
+      # Create at least one alternate section for this course
+      section = @course.course_sections.create!(name: 'Section #2')
+
+      # Enroll multiple students in a course
+      students = [@student]
+      students << course_with_student(active_all: true, course: @course).user
+      students << course_with_student(active_all: true, course: @course).user
+
+      # Enroll the last student into both sections
+      course_with_student(active_all: true, course: @course, user: students[-1], section: section, allow_multiple_enrollments: true)
+
+      # Create an assignment...
+      assignments = []
+      assignments << @course.assignments.create!(title: 'Assignment #1', points_possible: 10)
+
+      # ...and grade it for the three students
+      students.each { |student| assignments[0].grade_student(student, grade: '5', grader: @teacher) }
+
+      # Conclude all enrollments for the last student so no submissions are created for them...
+      @course.enrollments.where(user_id: students.last).map(&:conclude)
+
+      # ...and create an assignment now so there's no corresponding submission for the concluded user
+      assignments << @course.assignments.create!(title: 'Assignment #2', points_possible: 10)
+      assignments << @course.assignments.create!(title: 'Assignment #3', points_possible: 10)
+
+      # ...and grade it for the first two students
+      assignments[1..2].each do |assignment|
+        students[0..1].each { |student| assignment.grade_student(student, grade: '6', grader: @teacher) }
+      end
+
+      # Update the assignment group to drop the lowest score
+      assignments.first.assignment_group.rules_hash = { drop_lowest: 1 }
+      assignments.first.assignment_group.save!
+
+      calculator = GradeCalculator.new(students.map(&:id), @course)
+      computed_scores = calculator.compute_scores
+
+      # Verify the grades for the third student are what we expect
+      expect(computed_scores[2][:current][:grade]).to eq(50.0)
+      expect(computed_scores[2][:final][:grade]).to eq(50.0)
     end
 
     context "sharding" do
@@ -373,7 +416,7 @@ describe GradeCalculator do
       end
 
       context "muted assignments" do
-        before do
+        before :each do
           @assignment2.mute!
         end
 
@@ -773,7 +816,7 @@ describe GradeCalculator do
   end
 
   describe '#compute_and_save_scores' do
-    before(:once) do
+    before :each do
       @first_period, @second_period = grading_periods(count: 2)
       @first_assignment = @course.assignments.create!(
         due_at: 1.day.from_now(@first_period.start_date),
@@ -802,8 +845,28 @@ describe GradeCalculator do
     end
 
     it 'updates the overall course score metadata' do
+      metadata = overall_course_score.score_metadata
+      orig_updated_at = metadata.updated_at
       GradeCalculator.new(@student.id, @course).compute_and_save_scores
-      expect(overall_course_score.score_metadata.calculation_details).to eq({'current' => {'dropped' => []}, 'final' => {'dropped' => []}})
+      metadata.reload
+      expect(metadata.calculation_details).to eq({'current' => {'dropped' => []}, 'final' => {'dropped' => []}})
+      expect(orig_updated_at).to be < metadata.updated_at
+    end
+
+    it 'updates the overall course score metadata when only_update_course_gp_metadata: true' do
+      metadata = overall_course_score.score_metadata
+      orig_updated_at = metadata.updated_at
+      GradeCalculator.new(@student.id, @course, only_update_course_gp_metadata: true).compute_and_save_scores
+      metadata.reload
+      expect(metadata.calculation_details).to eq({'current' => {'dropped' => []}, 'final' => {'dropped' => []}})
+      expect(orig_updated_at).to be < metadata.updated_at
+    end
+
+    it 'does not update the overall course score when only_update_course_gp_metadata: true' do
+      updated_at = overall_course_score.updated_at
+      GradeCalculator.new(@student.id, @course, only_update_course_gp_metadata: true).compute_and_save_scores
+      overall_course_score.reload
+      expect(overall_course_score.updated_at).to eq(updated_at)
     end
 
     it 'updates all grading period scores' do
@@ -862,7 +925,7 @@ describe GradeCalculator do
     end
 
     context 'weighted grading periods' do
-      before(:once) do
+      before :each do
         group = @first_period.grading_period_group
         group.update!(weighted: true)
         @ungraded_assignment = @course.assignments.create!(
@@ -1181,7 +1244,7 @@ describe GradeCalculator do
 
   # We should keep this in sync with GradeCalculatorSpec.coffee
   context "GradeCalculatorSpec.coffee examples" do
-    before do
+    before :each do
       @group = @group1 = @course.assignment_groups.create!(:name => 'group 1')
     end
 
@@ -1203,11 +1266,19 @@ describe GradeCalculator do
       end
     end
 
-    def check_grades(current, final)
+    def check_grades(current, final, check_current: true, check_final: true)
       GradeCalculator.recompute_final_score(@student.id, @course.id)
       @enrollment.reload
-      expect(@enrollment.computed_current_score).to eq current
-      expect(@enrollment.computed_final_score).to eq final
+      expect(@enrollment.computed_current_score).to eq current if check_current
+      expect(@enrollment.computed_final_score).to eq final if check_final
+    end
+
+    def check_current_grade(current)
+      check_grades(current, nil, check_current: true, check_final: false)
+    end
+
+    def check_final_grade(final)
+      check_grades(nil, final, check_current: false, check_final: true)
     end
 
     it "should work without assignments or submissions" do
@@ -1228,6 +1299,78 @@ describe GradeCalculator do
 
       @group.update_attribute(:rules, 'drop_lowest:1')
       check_grades(200.0, 150.0)
+    end
+
+    it "muted assignments are not considered for the drop list when computing " \
+      "current grade for students (they are just excluded from the computation entirely)" do
+      set_grades([[4, 10], [3, 10], [9, 10]])
+      @group.update_attribute(:rules, 'drop_lowest:1')
+      @assignments.first.mute!
+      # 4/10 is excluded from the computation because it's muted
+      # 3/10 is dropped for being the lowest
+      # 9/10 is included
+      # 9/10 => 90.0%
+      check_current_grade(90.0)
+    end
+
+    it "ungraded assignments are not considered for the drop list when computing " \
+      "current grade for students (they are just excluded from the computation entirely)" do
+      set_grades([[nil, 20], [3, 10], [9, 10]])
+      @group.update_attribute(:rules, 'drop_lowest:1')
+      # nil/20 is excluded from the computation because it's not graded
+      # 3/10 is dropped for being the lowest
+      # 9/10 is included
+      # 9/10 => 90.0%
+      check_current_grade(90.0)
+    end
+
+    it "ungraded + muted assignments are not considered for the drop list when " \
+      "computing current grade for students (they are just excluded from the computation entirely)" do
+      set_grades([[nil, 20], [4, 10], [3, 10], [9, 10]])
+      @group.update_attribute(:rules, 'drop_lowest:1')
+      @assignments.second.mute!
+      # nil/20 is excluded from the computation because it's not graded
+      # 4/10 is exclued from the computation because it's muted
+      # 3/10 is dropped for being the lowest
+      # 9/10 is included
+      # 9/10 => 90.0%
+      check_current_grade(90.0)
+    end
+
+    it "ungraded assignments are treated as 0/points_possible for the drop list " \
+      "when computing final grade for students" do
+      set_grades([[nil, 20], [3, 10], [9, 10]])
+      @group.update_attribute(:rules, 'drop_lowest:1')
+      # nil/20 is treated as 0/20 because it's not graded
+      # 3/10 is included
+      # 9/10 is included
+      # 12/20 => 60.0%
+      check_final_grade(60.0)
+    end
+
+    it "muted assignments are not considered for the drop list when computing " \
+      "final grade for students (but they are included as 0/10 in the final computation)" do
+      set_grades([[4, 10], [3, 10], [9, 10]])
+      @group.update_attribute(:rules, 'drop_lowest:1')
+      @assignments.first.mute!
+      # 4/10 is ignored for drop rules because it is muted. it is included
+      # 3/10 is dropped for being the lowest
+      # 9/10 is included
+      # (4/10 is treated as 0/10 because it is muted) + 9/10 = 9/20 => 45.0%
+      check_final_grade(45.0)
+    end
+
+    it "ungraded are treated as 0/points_possible for the drop list and muted " \
+      "assignments are ignored for the drop list when computing final grade for students" do
+      set_grades([[nil, 20], [4, 10], [3, 10], [9, 10]])
+      @group.update_attribute(:rules, 'drop_lowest:1')
+      @assignments.second.mute!
+      # nil/20 is treated as 0/20 because it's not graded. it is dropped.
+      # 4/10 is ignored for drop rules because it is muted. it is included.
+      # 3/10 is included
+      # 9/10 is included
+      # (4/10 is treated as 0/10 because it is muted) + 3/10 + 9/10 = 12/30 => 40.0%
+      check_final_grade(40.0)
     end
 
     it 'should "work" when no submissions have points possible' do
@@ -1332,8 +1475,9 @@ describe GradeCalculator do
     end
 
     context "assignment groups with 0 points possible" do
-      before do
-        @group1.update_attribute :group_weight, 50
+      before :each do
+        @group1.group_weight = 50
+        @group1.save!
         @group2 = @course.assignment_groups.create! :name => 'group 2',
                                                     :group_weight => 25
         @group3 = @course.assignment_groups.create! :name => 'empty group',
@@ -1363,13 +1507,13 @@ describe GradeCalculator do
     end
 
     context "grading periods" do
-      before :once do
+      before :each do
         student_in_course active_all: true
         @gp1, @gp2 = grading_periods count: 2
-        @a1, @a2 = [@gp1, @gp2].map { |gp|
+        @a1, @a2 = [@gp1, @gp2].map do |gp|
           @course.assignments.create! due_at: 1.minute.from_now(gp.start_date),
             points_possible: 100
-        }
+        end
         @a1.grade_student(@student, grade: 25, grader: @teacher)
         @a2.grade_student(@student, grade: 75, grader: @teacher)
       end
@@ -1418,7 +1562,7 @@ describe GradeCalculator do
       end
 
       context "DA" do
-        before do
+        before :each do
           set_up_course_for_differentiated_assignments
         end
         it "should calculate scores based on visible assignments only" do
@@ -1463,23 +1607,49 @@ describe GradeCalculator do
         it "saves dropped submission to group score metadata" do
           @group.update_attribute(:rules, "drop_lowest:2\nnever_drop:#{@overridden_lowest.id}")
           GradeCalculator.new(@user.id, @course.id).compute_and_save_scores
-          enrollment = Enrollment.where(user_id: @user.id, course_id: @course.id).first
+          enrollment = Enrollment.find_by(user_id: @user.id, course_id: @course.id)
           score = enrollment.find_score(assignment_group: @group)
           expect(score.score_metadata.calculation_details).to eq ({
             'current' => {'dropped' => [find_submission(@overridden_middle)]},
             'final' => {'dropped' => [find_submission(@overridden_middle)]}
           })
         end
+
+        it "does not include muted assignments in the dropped submission list in group score metadata" do
+          @group.update_attribute(:rules, "drop_lowest:2\nnever_drop:#{@overridden_lowest.id}")
+          @overridden_middle.mute!
+          GradeCalculator.new(@user.id, @course.id).compute_and_save_scores
+          enrollment = Enrollment.where(user_id: @user.id, course_id: @course.id).first
+          score = enrollment.find_score(assignment_group: @group)
+          expect(score.score_metadata.calculation_details).to eq({
+            'current' => {'dropped' => []},
+            'final' => {'dropped' => []}
+          })
+        end
+
         it "saves dropped submissions to course score metadata" do
           @group.update_attribute(:rules, "drop_lowest:2\nnever_drop:#{@overridden_lowest.id}")
           GradeCalculator.new(@user.id, @course.id).compute_and_save_scores
           enrollment = Enrollment.where(user_id: @user.id, course_id: @course.id).first
           score = enrollment.find_score(course_score: true)
-          expect(score.score_metadata.calculation_details).to eq ({
+          expect(score.score_metadata.calculation_details).to eq({
             'current' => {'dropped' => [find_submission(@overridden_middle)]},
             'final' => {'dropped' => [find_submission(@overridden_middle)]}
           })
         end
+
+        it "does not include muted assignments in the dropped submission list in course score metadata" do
+          @group.update_attribute(:rules, "drop_lowest:2\nnever_drop:#{@overridden_lowest.id}")
+          @overridden_middle.mute!
+          GradeCalculator.new(@user.id, @course.id).compute_and_save_scores
+          enrollment = Enrollment.where(user_id: @user.id, course_id: @course.id).first
+          score = enrollment.find_score(course_score: true)
+          expect(score.score_metadata.calculation_details).to eq({
+            'current' => {'dropped' => []},
+            'final' => {'dropped' => []}
+          })
+        end
+
         it "updates existing course score metadata" do
           @group.update_attribute(:rules, "drop_lowest:2\nnever_drop:#{@overridden_lowest.id}")
           GradeCalculator.new(@user.id, @course.id).compute_and_save_scores
@@ -1499,7 +1669,7 @@ describe GradeCalculator do
     end
 
     context "excused assignments" do
-      before :once  do
+      before :each do
         student_in_course(active_all: true)
         @a1 = @course.assignments.create! points_possible: 10
         @a2 = @course.assignments.create! points_possible: 90

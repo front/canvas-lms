@@ -8,7 +8,7 @@ FROM instructure/ruby-passenger:2.4
 ENV APP_HOME /usr/src/app/
 ENV RAILS_ENV "production"
 ENV NGINX_MAX_UPLOAD_SIZE 10g
-ENV YARN_VERSION 0.27.5-1
+ENV YARN_VERSION 1.3.2-1
 
 # Work around github.com/zertosh/v8-compile-cache/issues/2
 # This can be removed once yarn pushes a release including the fixed version
@@ -17,7 +17,7 @@ ENV DISABLE_V8_COMPILE_CACHE 1
 
 USER root
 WORKDIR /root
-RUN curl -sL https://deb.nodesource.com/setup_6.x | bash - \
+RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - \
   && curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
   && echo "deb https://dl.yarnpkg.com/debian/ stable main" > /etc/apt/sources.list.d/yarn.list \
   && printf 'path-exclude /usr/share/doc/*\npath-exclude /usr/share/man/*' > /etc/dpkg/dpkg.cfg.d/01_nodoc \

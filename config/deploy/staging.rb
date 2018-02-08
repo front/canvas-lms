@@ -21,15 +21,11 @@ role :app, %w{178.79.171.242}
 role :web, %w{178.79.171.242}
 role :db,  %w{178.79.171.242}
 
+set :rails_env, 'production' # staging should work as production env
 
-
-# Configuration
-# =============
-# You can set any configuration variable like in config/deploy.rb
-# These variables are then only loaded and set in this stage.
-# For available Capistrano configuration variables see the documentation page.
-# http://capistranorb.com/documentation/getting-started/configuration/
-# Feel free to add new variables to customise your setup.
+# Unicorn settings
+set :unicorn_env, :staging
+set :unicorn_config_path, "config/unicorn/staging.rb"
 
 set :stage, :staging
 set :branch, :staging
@@ -47,6 +43,15 @@ set :rbenv_prefix, "RBENV_ROOT=#{fetch(:rbenv_path)} RBENV_VERSION=#{fetch(:rben
 set :rbenv_map_bins, %w{rake gem bundle ruby rails}
 set :rbenv_roles, :all
 
+# Configuration
+# =============
+# You can set any configuration variable like in config/deploy.rb
+# These variables are then only loaded and set in this stage.
+# For available Capistrano configuration variables see the documentation page.
+# http://capistranorb.com/documentation/getting-started/configuration/
+# Feel free to add new variables to customise your setup.
+
+
 
 # Custom SSH Options
 # ==================
@@ -56,12 +61,12 @@ set :rbenv_roles, :all
 #
 # Global options
 # --------------
- set :ssh_options, {
-   # keys: %w(/home/rlisowski/.ssh/id_rsa),
-   # forward_agent: false,
-   # auth_methods: %w(password)
-   user: "#{fetch(:deploy_user)}"
- }
+set :ssh_options, {
+#    keys: %w(/home/rlisowski/.ssh/id_rsa),
+#    forward_agent: false,
+#    auth_methods: %w(password),
+  user: "#{fetch(:deploy_user)}",
+}
 #
 # The server-based syntax can be used to override options:
 # ------------------------------------

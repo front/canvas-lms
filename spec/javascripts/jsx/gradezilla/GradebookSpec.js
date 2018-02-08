@@ -38,8 +38,8 @@ import LatePolicyApplicator from 'jsx/grading/LatePolicyApplicator';
 import SubmissionStateMap from 'jsx/gradezilla/SubmissionStateMap';
 import studentRowHeaderConstants from 'jsx/gradezilla/default_gradebook/constants/studentRowHeaderConstants';
 import { darken, statusColors, defaultColors } from 'jsx/gradezilla/default_gradebook/constants/colors';
-import { createGradebook } from 'spec/jsx/gradezilla/default_gradebook/GradebookSpecHelper';
-import { createCourseGradesWithGradingPeriods as createGrades } from 'spec/jsx/gradebook/GradeCalculatorSpecHelper';
+import { createGradebook } from '../gradezilla/default_gradebook/GradebookSpecHelper';
+import { createCourseGradesWithGradingPeriods as createGrades } from '../gradebook/GradeCalculatorSpecHelper';
 
 const $fixtures = document.getElementById('fixtures');
 
@@ -6631,14 +6631,31 @@ test('includes the column ids for related assignments when updating column heade
 QUnit.module('Gradebook#getSubmissionTrayProps', function(suiteHooks) {
   const url = '/api/v1/courses/1/assignments/2/submissions/3';
   const mountPointId = 'StudentTray__Container';
+  const defaultGradingScheme = [['A', 0.90], ['B', 0.80], ['C', 0.70], ['D', 0.60], ['E', 0.50]];
   let gradebook;
 
   suiteHooks.beforeEach(() => {
     moxios.install();
     moxios.stubRequest(url, { status: 200, response: { submission_comments: [] }});
     $fixtures.innerHTML = `<div id="${mountPointId}"></div><div id="application"></div>`;
-    gradebook = createGradebook();
-    gradebook.initSubmissionStateMap();
+    gradebook = createGradebook({
+      default_grading_standard: defaultGradingScheme
+    });
+    gradebook.setAssignments({
+      2301: {
+        id: '2301',
+        course_id: '1',
+        grading_type: 'points',
+        name: 'Assignment 1',
+        assignment_visibility: [],
+        only_visible_to_overrides: false,
+        html_url: 'http://assignmentUrl',
+        muted: false,
+        omit_from_final_grade: false,
+        published: true,
+        submission_types: ['online_text_entry']
+      }
+    });
     gradebook.students = {
       1101: {
         id: '1101',
@@ -6656,6 +6673,7 @@ QUnit.module('Gradebook#getSubmissionTrayProps', function(suiteHooks) {
         isConcluded: false
       }
     };
+    gradebook.initSubmissionStateMap();
     gradebook.gradebookGrid.gridSupport = {
       helper: {
         commitCurrentEdit () {},
@@ -6839,6 +6857,22 @@ QUnit.module('Gradebook#getSubmissionTrayProps', function(suiteHooks) {
     strictEqual(props.isInNoGradingPeriod, false);
 
     gradebook.submissionStateMap.getSubmissionState.restore();
+  });
+
+  test('gradingScheme is the grading scheme for the assignment', function () {
+    gradebook.setSubmissionTrayState(true, '1101', '2301');
+    const props = gradebook.getSubmissionTrayProps(gradebook.student('1101'));
+
+    deepEqual(props.gradingScheme, defaultGradingScheme);
+  });
+
+  test('enterGradesAs is the "enter grades as" setting for the assignment', function () {
+    sinon.spy(gradebook, 'getEnterGradesAsSetting');
+    gradebook.setSubmissionTrayState(true, '1101', '2301');
+    const props = gradebook.getSubmissionTrayProps(gradebook.student('1101'));
+
+    strictEqual(gradebook.getEnterGradesAsSetting.withArgs('2301').callCount, 1);
+    strictEqual(props.enterGradesAs, 'points');
   });
 });
 
@@ -7528,7 +7562,7 @@ QUnit.module('Gradebook#applyLatePolicy', {
     this.gradingStandard = [['A', 0]];
     this.gradebook = createGradebook({ grading_standard: this.gradingStandard });
     this.gradebook.gradingPeriodSet = { gradingPeriods: [{ id: 100, isClosed: true }, { id: 101, isClosed: false }] };
-    this.latePolicyApplicator = this.stub(LatePolicyApplicator, 'processSubmission');
+    this.latePolicyApplicator = this.stub(LatePolicyApplicator, 'processSubmission').returns(true);
 
     this.submission1 = {
       user_id: 10,
@@ -7548,6 +7582,12 @@ QUnit.module('Gradebook#applyLatePolicy', {
       grading_period_id: 101
     };
 
+    this.submission4 = {
+      user_id: 12,
+      assignment_id: 'assignment_1',
+      grading_period_id: null
+    };
+
     this.gradebook.assignments = { assignment_1: 'assignment1value', assignment_2: 'assignment2value' };
     this.gradebook.students = {
       10: {
@@ -7556,6 +7596,10 @@ QUnit.module('Gradebook#applyLatePolicy', {
       },
       11: {
         assignment_2: this.submission3
+      },
+      12: {
+        assignment_1: this.submission4,
+        isConcluded: true
       }
     }
     this.gradebook.courseContent.latePolicy = 'latepolicy';
@@ -7565,6 +7609,14 @@ QUnit.module('Gradebook#applyLatePolicy', {
 test('does not affect submissions in closed grading periods', function () {
   this.gradebook.applyLatePolicy();
   notOk(this.latePolicyApplicator.calledWith(this.submission2, 'assignment2value', this.gradingStandard, 'latepolicy'));
+});
+
+test('does not grade submissions for concluded students', function () {
+  sinon.stub(this.gradebook, 'calculateStudentGrade');
+  this.gradebook.applyLatePolicy();
+  const gradesCalculated = this.gradebook.calculateStudentGrade.calledWith(this.gradebook.students[12]);
+  strictEqual(gradesCalculated, false);
+  this.gradebook.calculateStudentGrade.restore();
 });
 
 test('affects submissions that are not in a grading period', function () {
@@ -8141,5 +8193,46 @@ QUnit.module('#setEditedCommentId', function () {
     const gradebook = createGradebook();
     gradebook.setEditedCommentId('23');
     strictEqual(gradebook.gridDisplaySettings.submissionTray.editedCommentId, '23');
+  });
+});
+
+QUnit.module('#renderGradebookSettingsModal', (hooks) => {
+  let gradebook;
+
+  function gradebookSettingsModalProps () {
+    return ReactDOM.render.firstCall.args[0].props;
+  }
+
+  hooks.beforeEach(() => {
+    sinon.stub(ReactDOM, 'render');
+  });
+
+  hooks.afterEach(() => {
+    ReactDOM.render.restore();
+  });
+
+  test('renders the GradebookSettingsModal component', function () {
+    gradebook = createGradebook();
+    gradebook.renderGradebookSettingsModal();
+    const componentName = ReactDOM.render.firstCall.args[0].type.name;
+    strictEqual(componentName, 'GradebookSettingsModal');
+  });
+
+  test('passes graded_late_submissions_exist option to the modal as a prop', function () {
+    gradebook = createGradebook({ graded_late_submissions_exist: true });
+    gradebook.renderGradebookSettingsModal();
+    strictEqual(gradebookSettingsModalProps().gradedLateSubmissionsExist, true);
+  });
+
+  test('passes the context_id option to the modal as a prop', function () {
+    gradebook = createGradebook({ context_id: '8473' });
+    gradebook.renderGradebookSettingsModal();
+    strictEqual(gradebookSettingsModalProps().courseId, '8473');
+  });
+
+  test('passes the locale option to the modal as a prop', function () {
+    gradebook = createGradebook({ locale: 'de' });
+    gradebook.renderGradebookSettingsModal();
+    strictEqual(gradebookSettingsModalProps().locale, 'de');
   });
 });

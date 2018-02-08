@@ -22,7 +22,7 @@ import tz from 'timezone'
 import datePickerFormat from 'jsx/shared/helpers/datePickerFormat'
 import moment from 'moment'
 import 'jquery.instructure_date_and_time'
-import 'compiled/jquery.rails_flash_notifications'
+import '../jquery.rails_flash_notifications'
 
 // adds datepicker and suggest functionality to the specified $field
 export default class DatetimeField {
@@ -80,7 +80,7 @@ export default class DatetimeField {
         timePicker: this.allowTime,
         beforeShow: () => this.$field.trigger('detachTooltip'),
         onClose: () => this.$field.trigger('reattachTooltip'),
-        firstDay: moment.localeData(ENV.LOCALE).firstDayOfWeek(),
+        firstDay: moment.localeData(ENV.MOMENT_LOCALE).firstDayOfWeek(),
       }, options.datepicker)
       this.$field.datepicker(datepickerOptions)
 

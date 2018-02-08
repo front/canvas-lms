@@ -18,31 +18,31 @@
 define [
   'INST'
   'i18n!assignment'
-  'compiled/views/ValidatedFormView'
+  '../ValidatedFormView'
   'underscore'
   'jquery'
   'jsx/shared/helpers/numberHelper'
-  'compiled/util/round'
+  '../../util/round'
   'jsx/shared/rce/RichContentEditor'
   'jst/assignments/EditView'
-  'compiled/userSettings'
-  'compiled/models/TurnitinSettings'
-  'compiled/models/VeriCiteSettings'
-  'compiled/views/assignments/TurnitinSettingsDialog'
-  'compiled/fn/preventDefault'
-  'compiled/views/calendar/MissingDateDialogView'
-  'compiled/views/assignments/AssignmentGroupSelector'
-  'compiled/views/assignments/GroupCategorySelector'
-  'compiled/jquery/toggleAccessibly'
-  'compiled/views/editor/KeyboardShortcuts'
+  '../../userSettings'
+  '../../models/TurnitinSettings'
+  '../../models/VeriCiteSettings'
+  './TurnitinSettingsDialog'
+  '../../fn/preventDefault'
+  '../calendar/MissingDateDialogView'
+  './AssignmentGroupSelector'
+  './GroupCategorySelector'
+  '../../jquery/toggleAccessibly'
+  '../editor/KeyboardShortcuts'
   'jsx/shared/conditional_release/ConditionalRelease'
-  'compiled/util/deparam'
-  'compiled/util/SisValidationHelper'
+  '../../util/deparam'
+  '../../util/SisValidationHelper'
   'jsx/assignments/AssignmentConfigurationTools'
   'jqueryui/dialog'
   'jquery.toJSON'
-  'compiled/jquery.rails_flash_notifications'
-  'compiled/behaviors/tooltip'
+  '../../jquery.rails_flash_notifications'
+  '../../behaviors/tooltip'
 ], (INST, I18n, ValidatedFormView, _, $, numberHelper, round, RichContentEditor, EditViewTemplate,
   userSettings, TurnitinSettings, VeriCiteSettings, TurnitinSettingsDialog,
   preventDefault, MissingDateDialog, AssignmentGroupSelector,
@@ -63,6 +63,7 @@ define [
     ONLINE_SUBMISSION_TYPES = '#assignment_online_submission_types'
     NAME = '[name="name"]'
     ALLOW_FILE_UPLOADS = '#assignment_online_upload'
+    ALLOW_TEXT_ENTRY = '#assignment_text_entry'
     RESTRICT_FILE_UPLOADS = '#assignment_restrict_file_extensions'
     RESTRICT_FILE_UPLOADS_OPTIONS = '#restrict_file_extensions_container'
     ALLOWED_EXTENSIONS = '#allowed_extensions_container'
@@ -292,7 +293,8 @@ define [
         @handleOnlineSubmissionTypeChange()
 
     handleOnlineSubmissionTypeChange: (env) =>
-      showConfigTools = @$onlineSubmissionTypes.find(ALLOW_FILE_UPLOADS).attr('checked')
+      showConfigTools = @$onlineSubmissionTypes.find(ALLOW_FILE_UPLOADS).attr('checked') ||
+        @$onlineSubmissionTypes.find(ALLOW_TEXT_ENTRY).attr('checked')
       @$similarityDetectionTools.toggleAccessibly showConfigTools && ENV.PLAGIARISM_DETECTION_PLATFORM
 
     afterRender: =>

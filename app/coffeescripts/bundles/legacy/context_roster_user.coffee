@@ -21,7 +21,7 @@ define [
   "jquery.ajaxJSON",
   "jquery.instructure_misc_plugins",
   "jquery.loadingImg",
-  "compiled/jquery.rails_flash_notifications",
+  "../../jquery.rails_flash_notifications",
   "link_enrollment"
 ], ($, I18n) ->
   $(document).ready ->
@@ -72,7 +72,7 @@ define [
     $(".delete_enrollment_link").click (event) ->
       event.preventDefault()
       $(this).parents(".enrollment").confirmDelete
-        message: I18n.t("confirm.delete_enrollment", "Are you sure you want to delete this student's enrollment?")
+        message: I18n.t("confirm.delete_enrollment", "Are you sure you want to delete this enrollment?")
         url: $(this).attr("href")
         success: (data) ->
           $(this).closest(".enrollment").hide()

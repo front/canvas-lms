@@ -1165,22 +1165,52 @@ describe User do
       expect(@user.avatar_image_url).to be_nil
     end
 
-    it "should not allow external url's to be assigned" do
+    it "should not allow external urls to be assigned" do
       @user.avatar_image = { 'type' => 'external', 'url' => 'http://www.example.com/image.jpg' }
       @user.save!
       expect(@user.reload.avatar_image_url).to eq nil
     end
 
-    it "should allow external url's that match avatar_external_url_patterns to be assigned" do
-      @user.avatar_image = { 'type' => 'external', 'url' => 'http://www.instructure.com/image.jpg' }
+    it "should allow external urls that match avatar_external_url_patterns to be assigned" do
+      @user.avatar_image = { 'type' => 'external', 'url' => 'https://www.instructure.com/image.jpg' }
+      @user.save!
+      expect(@user.reload.avatar_image_url).to eq "https://www.instructure.com/image.jpg"
+    end
+
+    it "should not allow external urls that do not match avatar_external_url_patterns to be assigned (apple.com)" do
+      @user.avatar_image = { 'type' => 'external', 'url' => 'https://apple.com/image.jpg' }
       @user.save!
       expect(@user.reload.avatar_image_url).to eq nil
     end
 
-    it "should allow gravatar url's to be assigned" do
+    it "should not allow external urls that do not match avatar_external_url_patterns to be assigned (ddinstructure.com)" do
+      @user.avatar_image = { 'type' => 'external', 'url' => 'https://ddinstructure.com/image' }
+      @user.save!
+      expect(@user.reload.avatar_image_url).to eq nil
+    end
+
+    it "should not allow external  urls that do not match avatar_external_url_patterns to be assigned (3510111291#instructure.com)" do
+      @user.avatar_image = { 'type' => 'external', 'url' => 'https://3510111291#sdf.instructure.com/image' }
+      @user.save!
+      expect(@user.reload.avatar_image_url).to eq nil
+    end
+
+    it "should allow gravatar urls to be assigned" do
       @user.avatar_image = { 'type' => 'gravatar', 'url' => 'http://www.gravatar.com/image.jpg' }
       @user.save!
       expect(@user.reload.avatar_image_url).to eq 'http://www.gravatar.com/image.jpg'
+    end
+
+    it "should not allow non gravatar urls to be assigned (ddgravatar.com)" do
+      @user.avatar_image = { 'type' => 'external', 'url' => 'http://ddgravatar.com/@google.com' }
+      @user.save!
+      expect(@user.reload.avatar_image_url).to eq nil
+    end
+
+    it "should not allow non gravatar external urls to be assigned (3510111291#secure.gravatar.com)" do
+      @user.avatar_image = { 'type' => 'external', 'url' => 'http://3510111291#secure.gravatar.com/@google.com' }
+      @user.save!
+      expect(@user.reload.avatar_image_url).to eq nil
     end
 
     it "should return a useful avatar_fallback_url" do
@@ -2122,23 +2152,28 @@ describe User do
 
   describe "submissions_needing_peer_review" do
     before(:each) do
-      course_with_student(:active_all => true)
-      @assessor = @student
+      @reviewer = course_with_student(active_all: true).user
+      @reviewee = course_with_student(course: @course, active_all: true).user
       assignment_model(course: @course, peer_reviews: true)
-      @submission = submission_model(assignment: @assignment)
-      @assessor_submission = submission_model(assignment: @assignment, user: @assessor)
-      @assessment_request = AssessmentRequest.create!(assessor: @assessor, asset: @submission, user: @student, assessor_asset: @assessor_submission)
-      @assessment_request.workflow_state = 'assigned'
-      @assessment_request.save
+
+      @reviewer_submission = submission_model(assignment: @assignment, user: @reviewer)
+      @reviewee_submission = submission_model(assignment: @assignment, user: @reviewee)
+      @assessment_request = @assignment.assign_peer_review(@reviewer, @reviewee)
     end
 
     it "should included assessment requests where the user is the assessor" do
-      expect(@assessor.submissions_needing_peer_review.length).to eq 1
+      expect(@reviewer.submissions_needing_peer_review.length).to eq 1
     end
 
-    it "should note include assessment requests that have been ignored" do
-      Ignore.create!(asset: @assessment_request, user: @assessor, purpose: 'reviewing')
-      expect(@assessor.submissions_needing_peer_review.length).to eq 0
+    it "should not include assessment requests that have been ignored" do
+      Ignore.create!(asset: @assessment_request, user: @reviewer, purpose: 'reviewing')
+      expect(@reviewer.submissions_needing_peer_review.length).to eq 0
+    end
+
+    it "should not include assessment requests the user does not have permission to perform" do
+      @assignment.peer_reviews = false
+      @assignment.save!
+      expect(@reviewer.submissions_needing_peer_review.length).to eq 0
     end
   end
 
@@ -2338,7 +2373,7 @@ describe User do
       end
 
       it 'should not show discussions that are graded' do
-        a = @course.assignments.create!(title: "some assignment", points_possible: 5)
+        a = @course.assignments.create!(title: "some assignment", points_possible: 5, due_at: 1.day.from_now)
         t = @course.discussion_topics.build(assignment: a, title: "some topic", message: "a little bit of content")
         t.save
         expect(t.assignment_id).to eql(a.id)
@@ -2536,6 +2571,7 @@ describe User do
       submission.grade_it!
 
       expect(@student.submission_statuses[:graded]).to match_array([@assignment.id])
+      expect(@student.submission_statuses[:has_feedback]).to match_array([])
     end
 
     it 'should indicate that an assignment is late' do
@@ -3977,6 +4013,29 @@ describe User do
     it "returns false when user is designer" do
         course_with_designer(:user => user)
         expect(user.has_student_enrollment?).to eq false
+    end
+  end
+
+  describe "#participating_student_current_and_concluded_course_ids" do
+    let(:user) { User.create! }
+
+    before :each do
+      course_with_student(user: user, active_all: true)
+    end
+
+    it "includes courses for current enrollments" do
+      expect(user.participating_student_current_and_concluded_course_ids).to include(@course.id)
+    end
+
+    it "includes concluded courses" do
+      @course.soft_conclude!
+      @course.save
+      expect(user.participating_student_current_and_concluded_course_ids).to include(@course.id)
+    end
+
+    it "includes courses for concluded enrollments" do
+      user.enrollments.last.conclude
+      expect(user.participating_student_current_and_concluded_course_ids).to include(@course.id)
     end
   end
 

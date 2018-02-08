@@ -112,7 +112,7 @@ describe Enrollment do
       @override.assignment_override_students.create!(user: @enrollment.user)
     end
 
-    let(:override_student) { @override.assignment_override_students.find_by(user_id: @enrollment.user) }
+    let(:override_student) { @override.assignment_override_students.unscope(:where).find_by(user_id: @enrollment.user) }
 
     it 'does not destroy assignment override students on the user if other enrollments' \
     'for the user exist in the course' do
@@ -124,11 +124,11 @@ describe Enrollment do
       )
       @enrollment.destroy
       expect(override_student).to be_present
+      expect(override_student).to be_active
     end
-
     it 'destroys assignment override students on the user if no other enrollments for the user exist in the course' do
       @enrollment.destroy
-      expect(override_student).not_to be_present
+      expect(override_student).to be_deleted
     end
   end
 
@@ -151,6 +151,25 @@ describe Enrollment do
       new_score.workflow_state = :deleted
       new_score.save!
       expect { @enrollment.restore }.not_to change { new_score.reload.workflow_state }
+    end
+
+    it 'should restore assignment overrides for reactivated users' do
+      assignment = assignment_model(:course => @course)
+      ao = AssignmentOverride.new()
+      ao.assignment = assignment
+      ao.title = "ADHOC OVERRIDE"
+      ao.workflow_state = "active"
+      ao.set_type = "ADHOC"
+      ao.save!
+      assignment.reload
+      override_student = ao.assignment_override_students.build
+      override_student.user = @user
+      override_student.save!
+      override_student.destroy
+
+      expect(override_student.reload.workflow_state).to eq("deleted")
+      @enrollment.restore
+      expect(override_student.reload.workflow_state).to eq("active")
     end
   end
 
@@ -224,6 +243,41 @@ describe Enrollment do
         end
       end
 
+      describe '#unposted_current_score' do
+        it 'uses the value from the associated score object, if one exists' do
+          @enrollment.scores.create!(unposted_current_score: 80.3)
+          expect(@enrollment.unposted_current_score).to eq 80.3
+        end
+
+        it 'uses the value from the associated score object, even if it is nil' do
+          @enrollment.scores.create!(unposted_current_score: nil)
+          expect(@enrollment.unposted_current_score).to be_nil
+        end
+
+        it 'ignores grading period scores when passed no arguments' do
+          @enrollment.scores.create!(unposted_current_score: 80.3, grading_period: period)
+          expect(@enrollment.unposted_current_score).to be_nil
+        end
+
+        it 'ignores soft-deleted scores' do
+          score = @enrollment.scores.create!(unposted_current_score: 80.3)
+          score.destroy
+          expect(@enrollment.unposted_current_score).to be_nil
+        end
+
+        it 'computes current score for a given grading period id' do
+          @enrollment.scores.create!(current_score: 80.3)
+          @enrollment.scores.create!(current_score: 70.6, grading_period: period)
+          current_score = @enrollment.computed_current_score(grading_period_id: period.id)
+          expect(current_score).to eq 70.6
+        end
+
+        it 'returns nil if a grading period score is requested and does not exist' do
+          current_score = @enrollment.computed_current_score(grading_period_id: period.id)
+          expect(current_score).to be_nil
+        end
+      end
+
       describe '#computed_current_grade' do
         before(:each) do
           @course.grading_standard_enabled = true
@@ -255,6 +309,40 @@ describe Enrollment do
         it 'returns nil if a grading period grade is requested and does not exist' do
           current_grade = @enrollment.computed_current_grade(grading_period_id: period.id)
           expect(current_grade).to be_nil
+        end
+      end
+
+      describe '#unposted_current_grade' do
+        before(:each) do
+          @course.grading_standard_enabled = true
+          @course.save!
+        end
+
+        it 'uses the value from the associated score object, if one exists' do
+          @enrollment.scores.create!(unposted_current_score: 80.3)
+          expect(@enrollment.unposted_current_grade).to eq 'B-'
+        end
+
+        it 'ignores grading period grades when passed no arguments' do
+          @enrollment.scores.create!(unposted_current_score: 80.3, grading_period: period)
+          expect(@enrollment.unposted_current_grade).to be_nil
+        end
+
+        it 'ignores grades from soft-deleted scores' do
+          score = @enrollment.scores.create!(unposted_current_score: 80.3)
+          score.destroy
+          expect(@enrollment.unposted_current_grade).to be_nil
+        end
+
+        it 'computes current grade for a given grading period id' do
+          @enrollment.scores.create!(unposted_current_score: 70.6, grading_period: period)
+          unposted_current_grade = @enrollment.unposted_current_grade(grading_period_id: period.id)
+          expect(unposted_current_grade).to eq 'C-'
+        end
+
+        it 'returns nil if a grading period grade is requested and does not exist' do
+          unposted_current_grade = @enrollment.unposted_current_grade(grading_period_id: period.id)
+          expect(unposted_current_grade).to be_nil
         end
       end
 
@@ -498,6 +586,40 @@ describe Enrollment do
           @enrollment.destroy
           expect(new_student_enrollment.computed_final_score).to be_nil
         end
+      end
+    end
+
+    describe 'restoring enrollments directly from soft-deleted to completed state' do
+      before :each do
+        # Create two enrollments for this course
+        @enrollment.save!
+        user2 = User.create!
+        @enrollment2 = StudentEnrollment.create!(user: user2, course: @course)
+
+        # and ensure the course has two assignment groups with one assignment in each group
+        @course.assignments.create!(title: 'Assignment #1', points_possible: 10)
+        group2 = @course.assignment_groups.create!(name: 'Assignment Group #2')
+        @course.assignments.create!(title: 'Assignment #2', points_possible: 10, assignment_group: group2)
+
+        # Soft-delete both enrollments so their corresponding scores are also soft-deleted
+        @enrollment.destroy
+        @enrollment2.destroy
+      end
+
+      it 'restores deleted scores belonging to the specific enrollment' do
+        expect do
+          # Restore an enrollment directly from "deleted" to "completed" state
+          @enrollment.workflow_state = 'completed'
+          @enrollment.save!
+        end.to change { @enrollment.reload.scores.size }.from(0).to(3)
+      end
+
+      it 'does not restore deleted scores belonging to the other enrollment' do
+        expect do
+          # Restore an enrollment directly from "deleted" to "completed" state
+          @enrollment.workflow_state = 'completed'
+          @enrollment.save!
+        end.not_to change { @enrollment2.reload.scores.size }
       end
     end
   end
@@ -2251,6 +2373,26 @@ describe Enrollment do
         expect(@student.cached_current_enrollments).to eq [@enrollment]
       end
     end
+
+    it 'should restore assignment overrides for unconcluded user' do
+      course_with_student active_course: true, enrollment_state: 'completed'
+      assignment = assignment_model(:course => @course)
+      ao = AssignmentOverride.new()
+      ao.assignment = assignment
+      ao.title = "ADHOC OVERRIDE"
+      ao.workflow_state = "active"
+      ao.set_type = "ADHOC"
+      ao.save!
+      assignment.reload
+      override_student = ao.assignment_override_students.build
+      override_student.user = @student
+      override_student.save!
+      override_student.destroy
+
+      expect(override_student.reload.workflow_state).to eq("deleted")
+      @enrollment.unconclude
+      expect(override_student.reload.workflow_state).to eq("active")
+    end
   end
 
   describe 'observing users' do
@@ -2430,6 +2572,14 @@ describe Enrollment do
       expect(DueDateCacher).to receive(:recompute).never
       expect(DueDateCacher).to receive(:recompute_course).never
       @enrollment.save
+    end
+
+    it "does not trigger when set_update_cached_due_dates callback is suspended" do
+      expect(DueDateCacher).to receive(:recompute).never
+      expect(DueDateCacher).to receive(:recompute_course).never
+      Enrollment.suspend_callbacks(:set_update_cached_due_dates) do
+        @course.enroll_student(user_factory)
+      end
     end
   end
 

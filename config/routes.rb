@@ -687,8 +687,6 @@ CanvasRails::Application.routes.draw do
 
   get 'login/canvas' => 'login/canvas#new', as: :canvas_login
   post 'login/canvas' => 'login/canvas#create'
-  # deprecated alias
-  post 'login' => 'login/canvas#create'
 
   get 'login/ldap' => 'login/ldap#new'
   post 'login/ldap' => 'login/ldap#create'
@@ -926,7 +924,7 @@ CanvasRails::Application.routes.draw do
       get 'courses/:course_id/users/:id', action: :user, as: 'course_user'
       get 'courses/:course_id/activity_stream', action: :activity_stream, as: 'course_activity_stream'
       get 'courses/:course_id/activity_stream/summary', action: :activity_stream_summary, as: 'course_activity_stream_summary'
-      get 'courses/:course_id/todo', action: :todo_items
+      get 'courses/:course_id/todo', action: :todo_items, as: 'course_todo_list_items'
       post 'courses/:course_id/preview_html', action: :preview_html
       post 'courses/:course_id/course_copy', controller: :content_imports, action: :copy_course_content
       get 'courses/:course_id/course_copy/:id', controller: :content_imports, action: :copy_course_status, as: :course_copy_status
@@ -986,10 +984,12 @@ CanvasRails::Application.routes.draw do
 
       post 'courses/:course_id/enrollments', action: :create
       post 'sections/:section_id/enrollments', action: :create
+      post 'courses/:course_id/enrollments/:id/accept', action: :accept
+      post 'courses/:course_id/enrollments/:id/reject', action: :reject
 
       put 'courses/:course_id/enrollments/:id/reactivate', :action => :reactivate, :as => 'reactivate_enrollment'
 
-      delete 'courses/:course_id/enrollments/:id', action: :destroy
+      delete 'courses/:course_id/enrollments/:id', action: :destroy, :as => "destroy_enrollment"
     end
 
     scope(controller: :terms_api) do
@@ -1236,7 +1236,8 @@ CanvasRails::Application.routes.draw do
       put "users/:user_id/followers/self", action: :follow
       delete "users/:user_id/followers/self", action: :unfollow
 
-      get 'users/self/todo', action: :todo_items
+      get 'users/self/todo', action: :todo_items, as: 'user_todo_list_items'
+      get 'users/self/todo_item_count', action: :todo_item_count
       get 'users/self/upcoming_events', action: :upcoming_events
       get 'users/:user_id/missing_submissions', action: :missing_submissions, as: 'user_missing_submissions'
 
@@ -1302,6 +1303,7 @@ CanvasRails::Application.routes.draw do
       get 'course_accounts', :action => :course_accounts, :as => :course_accounts
       get 'accounts/:id', action: :show, as: :account
       put 'accounts/:id', action: :update
+      get 'accounts/:account_id/terms_of_service', action: :terms_of_service
       get 'accounts/:account_id/courses', action: :courses_api, as: 'account_courses'
       get 'accounts/:account_id/sub_accounts', action: :sub_accounts, as: 'sub_accounts'
       get 'accounts/:account_id/courses/:id', controller: :courses, action: :show, as: 'account_course_show'

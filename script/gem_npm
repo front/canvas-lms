@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+
 # little shortcut for doing yarn install/update/whatever for each of our
 # gems that do node-y stuff
 

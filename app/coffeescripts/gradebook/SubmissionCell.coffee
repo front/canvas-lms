@@ -21,11 +21,11 @@ define [
   'i18n!gradebook'
   'jsx/shared/helpers/numberHelper'
   'jsx/gradebook/shared/helpers/GradeFormatHelper'
-  'compiled/gradebook/GradebookTranslations'
+  '../gradebook/GradebookTranslations'
   'jsx/grading/helpers/OutlierScoreHelper'
   'str/htmlEscape'
-  'compiled/gradebook/Turnitin'
-  'compiled/util/round'
+  '../gradebook/Turnitin'
+  '../util/round'
   'jquery.ajaxJSON'
   'jquery.instructure_misc_helpers' # raw
 ], ($, _, I18n, numberHelper, GradeFormatHelper, GRADEBOOK_TRANSLATIONS,
@@ -276,7 +276,7 @@ define [
         ''
       SubmissionCell::cellWrapper("""
         <button
-          data-value="#{htmlEscape(options.submission.entered_grade || '')}"
+          data-value="#{htmlEscape(options.submission.entered_grade || options.submission.grade || '')}"
           class="Button Button--icon-action gradebook-checkbox gradebook-checkbox-#{htmlEscape cssClass} #{htmlEscape(editable)}"
           type="button"
           aria-label="#{htmlEscape cssClass}"><span class="screenreader-only">#{htmlEscape(passFailMessage(cssClass))}</span>#{checkboxButtonTemplate(iconClass)}</button>
@@ -321,7 +321,8 @@ define [
         .addClass(iconClassFromSubmission(rawGrade: newValue))
 
     loadValue: () ->
-      @val = @opts.item[@opts.column.field].grade || ""
+      submission = @opts.item[@opts.column.field]
+      @val = submission.entered_grade || submission.grade || ""
 
     serializeValue: () ->
       @$input.data('value')

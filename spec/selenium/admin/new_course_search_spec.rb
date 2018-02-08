@@ -63,7 +63,9 @@ describe "new account course search" do
 
   it "should paginate" do
     16.times { |i| @account.courses.create!(:name => "course #{i + 1}") }
-    get "/accounts/#{@account.id}"
+
+    # slowness has been identified, remove timeout exception after CORE-712 is merged.
+    with_timeouts(script: 10) { get "/accounts/#{@account.id}" }
 
     expect(get_rows.count).to eq 15
     expect(get_rows.first).to include_text("course 1")
@@ -109,6 +111,26 @@ describe "new account course search" do
     rows = get_rows
     expect(rows.count).to eq 1
     expect(rows.first).to include_text(match_course.name)
+  end
+
+  it "should bring up course page when clicking name", priority: "1", test_id: 3415212 do
+    named_course = course_factory(:account => @account, :course_name => "named_course")
+    named_course.default_view = 'feed'
+    named_course.save
+    get "/accounts/#{@account.id}"
+
+    f('.courses-list a').click
+    wait_for_ajax_requests
+    expect(f("#content h2")).to include_text named_course.name
+  end
+
+  it "should search but not find bogus course", priority: "1", test_id: 3415214 do
+    bogus = 'jtsdumbthing'
+    get "/accounts/#{@account.id}"
+
+    f('.course_search_bar input[type=search]').send_keys(bogus)
+
+    expect(f("#content")).not_to contain_css('.courses-list [role=row]')
   end
 
   it "should show teachers" do

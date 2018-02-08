@@ -251,6 +251,7 @@ describe "calendar2" do
       end
 
       it "respects the calendars checkboxes" do
+        make_full_screen
         get "/calendar2"
         expect(ff('.fc-view-container .fc-content .fc-title').length).to equal(1)
 
@@ -270,12 +271,10 @@ describe "calendar2" do
         f("button.event_button.edit_event_link").click
         expect(f('#planner_note_context')).to be_displayed
         # change the calendar
-        select_list = f('#planner_note_context')
-        options=select_list.find_elements(:tag_name => "option")
-        options[1].click
+        click_option('#planner_note_context', @course.name)
         # save
-        scroll_into_view('#edit_planner_note_form_holder button[type="submit"]')
         f('#edit_planner_note_form_holder button[type="submit"]').click
+        wait_for_ajaximations
         expect(ff('.fc-view-container .fc-content .fc-title').length).to equal(1)
 
         # turn it off
@@ -284,6 +283,28 @@ describe "calendar2" do
         # turn it back on
         f("span.group_course_#{@course.id}").click
         expect(ff('.fc-view-container .fc-content .fc-title').length).to equal(1)
+      end
+
+      it "edits the event in calendar", priority: "1", test_id: 3415211 do
+        get "/calendar2"
+        f('.fc-content .fc-title').click
+        f('.edit_event_link').click
+        replace_content(f('input[name=title]'), 'new to-do edited')
+        date = format_date_for_view(Time.zone.now, :short).split(" ")
+        day = if date[1] == '15'
+                date[0] + ' 20'
+              else
+                date[0] + ' 15'
+              end
+        replace_content(f('input[name=date]'), day)
+        f('.validated-form-view').submit
+        refresh_page
+        f('.fc-content .fc-title').click
+        event_content = fj('.event-details-content:visible')
+        expect(event_content.find_element(:css, '.event-details-timestring').text).
+          to eq format_date_for_view(day)
+        @to_do.reload
+        expect(format_date_for_view(@to_do.todo_date, :short)).to eq(day)
       end
     end
   end

@@ -338,6 +338,24 @@ describe AssignmentsController do
       get 'show', params: {:course_id => @course.id, :id => @assignment.id}
       expect(response).to be_success
       expect(assigns[:current_user_submission]).not_to be_nil
+      expect(assigns[:assigned_assessments]).to eq []
+    end
+
+    it "should assign (active) peer review requests" do
+      @assignment.peer_reviews = true
+      @assignment.save!
+      @student1 = @student
+      @student2 = student_in_course(:active_all => true).user
+      @student3 = student_in_course(:enrollment_state => 'inactive').user
+      sub1 = @assignment.submit_homework(@student1, :submission_type => 'online_url', :url => 'http://www.example.com/1')
+      sub2 = @assignment.submit_homework(@student2, :submission_type => 'online_url', :url => 'http://www.example.com/2')
+      sub3 = @assignment.submit_homework(@student3, :submission_type => 'online_url', :url => 'http://www.example.com/3')
+      sub2.assign_assessor(sub1)
+      sub3.assign_assessor(sub1)
+      user_session(@student1)
+      get 'show', :params => { :course_id => @course.id, :id => @assignment.id }
+      expect(assigns[:current_user_submission]).to eq sub1
+      expect(assigns[:assigned_assessments].map(&:submission)).to eq [sub2]
     end
 
     it "should redirect to wiki page if assignment is linked to wiki page" do
@@ -439,6 +457,8 @@ describe AssignmentsController do
         Setting.set('enable_page_views', 'db')
         @old_thread_context = Thread.current[:context]
         Thread.current[:context] = { request_id: SecureRandom.uuid }
+        allow(BasicLTI::Sourcedid).to receive(:encryption_secret) {'encryption-secret-5T14NjaTbcYjc4'}
+        allow(BasicLTI::Sourcedid).to receive(:signing_secret) {'signing-secret-vp04BNqApwdwUYPUI'}
       end
 
       after do

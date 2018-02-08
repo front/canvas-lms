@@ -71,7 +71,10 @@ define [
 
     equal action.type, expected.type, "type matches"
     equal action.payload.message, expected.payload.message, "message matches"
-    ok expected.payload.time - action.payload.time < 5, "time within 5 seconds"
+    ok(
+      expected.payload.time - action.payload.time < 10, 
+      "time within 10 seconds expected:#{expected.payload.time} action: #{action.payload.time}"
+    )
 
   test "creates the UPDATE_MODERATION_SET_FAILED action", ->
     action = ModerationActions.moderationSetUpdateFailed()
@@ -159,7 +162,8 @@ define [
   test "returns a function", ->
     ok typeof ModerationActions.apiGetStudents() == 'function'
 
-  asyncTest "dispatches gotStudents action", ->
+  test "dispatches gotStudents action", (assert) ->
+    start = assert.async()
 
     getState = ->
       urls:
@@ -179,7 +183,8 @@ define [
       start()
     , getState)
 
-  asyncTest "calls itself again if headers indicate more pages", ->
+  test "calls itself again if headers indicate more pages", (assert) ->
+    start = assert.async()
 
     getState = ->
       urls:
@@ -212,7 +217,8 @@ define [
   test "returns a function", ->
     ok typeof ModerationActions.publishGrades() == 'function'
 
-  asyncTest "dispatches publishGrades action on success", ->
+  test "dispatches publishGrades action on success", (assert) ->
+    start = assert.async()
     getState = ->
       urls:
         publish_grades_url: 'some_url'
@@ -230,7 +236,8 @@ define [
       start()
     , getState)
 
-  asyncTest "dispatches publishGradesFailed action with already published message on 400 failure", ->
+  test "dispatches publishGradesFailed action with already published message on 400 failure", (assert) ->
+    start = assert.async()
     getState = ->
       urls:
         publish_grades_url: 'some_url'
@@ -249,7 +256,8 @@ define [
       start()
     , getState)
 
-  asyncTest "dispatches publishGradesFailed action with selected grades message on 422 failure", ->
+  test "dispatches publishGradesFailed action with selected grades message on 422 failure", (assert) ->
+    start = assert.async()
     getState = ->
       urls:
         publish_grades_url: 'some_url'
@@ -268,7 +276,9 @@ define [
       start()
     , getState)
 
-  asyncTest "dispatches publishGradesFailed action with generic error message on non-400 error", ->
+  test 'dispatches publishGradesFailed action with generic error message on non-400 error', (assert) ->
+    assert.expect(2)
+    start = assert.async()
     getState = ->
       urls:
         publish_grades_url: 'some_url'
@@ -299,7 +309,8 @@ define [
   test "returns a function", ->
     ok typeof ModerationActions.addStudentToModerationSet() == 'function'
 
-  asyncTest "dispatches moderationSetUpdated on success", ->
+  test "dispatches moderationSetUpdated on success", (assert) ->
+    start = assert.async()
     fakeUrl = 'some_url'
     getState = ->
       urls:
@@ -326,7 +337,8 @@ define [
       start()
     , getState)
 
-  asyncTest "dispatches moderationSetUpdateFailed on failure", ->
+  test "dispatches moderationSetUpdateFailed on failure", (assert) ->
+    start = assert.async()
     getState = ->
       urls:
         add_moderated_students: 'some_url'
@@ -362,7 +374,8 @@ define [
   test "returns a function", ->
     ok typeof ModerationActions.selectProvisionalGrade(1) == 'function'
 
-  asyncTest "dispatches selectProvisionalGrade on success", ->
+  test "dispatches selectProvisionalGrade on success", (assert) ->
+    start = assert.async()
     fakeUrl = 'base_url'
     getState = ->
       urls:
@@ -386,7 +399,8 @@ define [
       start()
     , getState)
 
-  asyncTest "dispatches displayErrorMessage on failure", ->
+  test "dispatches displayErrorMessage on failure", (assert) ->
+    start = assert.async()
     fakeUrl = 'base_url'
     getState = ->
       urls:
