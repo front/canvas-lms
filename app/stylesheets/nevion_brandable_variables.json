@@ -151,6 +151,12 @@
     "type": "image",
     "accept": "image/png,image/gif,image/jpeg, image/svg+xml,image/svg",
     "default": "/images/login/nevion-logo.png"
+  },  
+  {
+    "variable_name": "ic-brand-Login-logo@2x",
+    "type": "image",
+    "accept": "image/png,image/gif,image/jpeg, image/svg+xml,image/svg",
+    "default": "/images/login/nevion-logo.png"
   },
   {
     "variable_name": "ic-brand-Login-Content-bgd-color",
