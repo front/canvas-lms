@@ -147,13 +147,23 @@
     "default": "#2D3B45"
   },
   {
-    "variable_name": "ic-brand-Login-logo",
+    "variable_name": "ic-brand-Login-confirmation-bgd",
+    "type": "color",
+    "default": "#F3F3F3"
+  },   
+  {
+    "variable_name": "ic-brand-Login-confirmation-header-bgd",
+    "type": "color",
+    "default": "#F3F3F3"
+  },  
+  {
+    "variable_name": "ic-brand-Login-confirmation-logo",
     "type": "image",
     "accept": "image/png,image/gif,image/jpeg, image/svg+xml,image/svg",
     "default": "/images/login/nevion-logo.png"
-  },  
+  },
   {
-    "variable_name": "ic-brand-Login-logo@2x",
+    "variable_name": "ic-brand-Login-logo",
     "type": "image",
     "accept": "image/png,image/gif,image/jpeg, image/svg+xml,image/svg",
     "default": "/images/login/nevion-logo.png"
