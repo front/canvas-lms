@@ -480,7 +480,6 @@ class ApplicationController < ActionController::Base
   # retrieves the root account for the given domain
   def load_account
     @domain_root_account = request.env['canvas.domain_root_account'] || LoadAccount.default_domain_root_account
-    @domain_root_account.settings[:email_logo] = 'https://nevion.com/wp-content/uploads/2015/09/logo.png'
     @files_domain = request.host_with_port != HostUrl.context_host(@domain_root_account) && HostUrl.is_file_host?(request.host_with_port)
     @domain_root_account
   end
