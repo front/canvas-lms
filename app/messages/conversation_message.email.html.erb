@@ -7,7 +7,7 @@
 <% end %>
 
 <% define_content :subject do %>
-  <%= t :subject, "%{user_name} just sent you a message in Canvas.", :user_name => content(:user_name) %>
+  <%= t :subject, "%{user_name} just sent you a message in Nevion Academy.", :user_name => content(:user_name) %>
 <% end %>
 
 <% define_content :footer_link do %>
@@ -66,7 +66,7 @@
 <% if asset.has_media_objects? %>
 <p><%= t :audio_comment, "This message includes media comments. To listen or reply, click the link below:" %></p>
 <% elsif IncomingMailProcessor::MailboxAccount.reply_to_enabled %>
-<p><%= t :reply_to_conversation_message, "You can reply to this message in Canvas by replying directly to this email. If you need to include an attachment, please log in to Canvas and reply through the Inbox." %></p>
+<p><%= t :reply_to_conversation_message, "You can reply to this message in Nevion Academy by replying directly to this email. If you need to include an attachment, please log in to Nevion Academy and reply through the Inbox." %></p>
 <% end %>
 
 <% unless asset.attachments.empty? %>

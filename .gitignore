@@ -59,3 +59,7 @@ yarn-error.log
 
 # user docker compose overrides
 docker-compose.local.*
+
+# commands helpers
+brand_configs.sh
+compile_assets.sh
