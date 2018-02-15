@@ -17,11 +17,9 @@
 # property set. Specify the username and a domain or IP for the server.
 # Don't use `:all`, it's a meta role.
 
-# role :app, %w{deploy@example.com}, my_property: :my_value
-# role :web, %w{user1@primary.com user2@additional.com}, other_property: :other_value
-# role :db,  %w{deploy@example.com}
-
-
+role :app, %w{academy.nevion.com}
+role :web, %w{academy.nevion.com}
+role :db,  %w{academy.nevion.com}
 
 # Configuration
 # =============
@@ -30,7 +28,28 @@
 # For available Capistrano configuration variables see the documentation page.
 # http://capistranorb.com/documentation/getting-started/configuration/
 # Feel free to add new variables to customise your setup.
+set :application, 'canvas-nevion'
+set :deploy_user, 'canvas-nevion'
+set :rails_env, 'production' # staging should work as production env
 
+# Unicorn settings
+set :unicorn_env, :production
+set :unicorn_config_path, "config/unicorn/production.rb"
+
+set :stage, :production
+set :branch, :master
+set :full_app_name, "#{fetch(:application)}_#{fetch(:stage)}"
+
+# Default deploy_to directory is /var/www/my_app_name
+set :deploy_to, "/home/#{fetch(:deploy_user)}/apps/#{fetch(:full_app_name)}"
+
+# Setup rbenv and ruby version
+set :rbenv_custom_path, "/home/#{fetch(:deploy_user)}/.rbenv"
+set :rbenv_type, :user
+set :rbenv_ruby, '2.4.0'
+set :rbenv_prefix, "RBENV_ROOT=#{fetch(:rbenv_path)} RBENV_VERSION=#{fetch(:rbenv_ruby)} #{fetch(:rbenv_path)}/bin/rbenv exec"
+set :rbenv_map_bins, %w{rake gem bundle ruby rails}
+set :rbenv_roles, :all
 
 
 # Custom SSH Options
@@ -41,11 +60,12 @@
 #
 # Global options
 # --------------
-#  set :ssh_options, {
+set :ssh_options, {
 #    keys: %w(/home/rlisowski/.ssh/id_rsa),
 #    forward_agent: false,
-#    auth_methods: %w(password)
-#  }
+#    auth_methods: %w(password),
+  user: "#{fetch(:deploy_user)}",
+}
 #
 # The server-based syntax can be used to override options:
 # ------------------------------------
