@@ -15,6 +15,7 @@
 .env
 /.yardoc/
 /.ruby-version
+/.rbenv-gemsets
 /app/views/info/styleguide.html.erb
 /config/*.yml
 /config/environments/*-local.rb
