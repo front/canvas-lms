@@ -58,6 +58,7 @@ set :yarn_flags, ''
 
 before 'yarn:install', 'deploy:generate_assets'
 after 'yarn:install', 'deploy:canvas_compile_assets'
+after "deploy", "delayed_job:restart"
 
 namespace :deploy do
   desc 'Generate Assets'
@@ -106,6 +107,41 @@ namespace :bundler do
   before :install, :create_gemfile_lock do
     on roles(:app) do
       execute :touch, release_path.join('Gemfile.lock')
+    end
+  end
+end
+
+namespace :delayed_job do
+  desc 'Stop the delayed_job process'
+  task :stop do
+    on roles(:app) do
+      within release_path do
+        with rails_env: 'production' do # always production (staging and production)
+          execute :bundle, :exec, 'script/delayed_job', :stop
+        end
+      end
+    end
+  end
+
+  desc 'Start the delayed_job process'
+  task :start do
+    on roles(:app) do
+      within release_path do
+        with rails_env: 'production' do # always production (staging and production)
+          execute :bundle, :exec, 'script/delayed_job', :start
+        end
+      end
+    end
+  end
+
+  desc 'Restart the delayed_job process'
+  task :restart do
+    on roles(:app) do
+      within release_path do
+        with rails_env: 'production' do # always production (staging and production)
+          execute :bundle, :exec, 'script/delayed_job', :restart
+        end
+      end
     end
   end
 end
