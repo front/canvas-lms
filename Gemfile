@@ -33,3 +33,5 @@ group :development do
 end
 
 gem 'unicorn', :group => [:production, :staging]
+
+gem 'sprockets', '3.7.2'
