@@ -32,6 +32,6 @@ group :development do
   gem 'capistrano-rails', '1.3'
 end
 
-gem 'unicorn', :group => [:production, :staging]
+gem 'unicorn'
 
 gem 'sprockets', '3.7.2'
