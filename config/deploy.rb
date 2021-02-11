@@ -41,15 +41,15 @@ append :linked_dirs, 'log', 'tmp/pids', 'tmp/cache', 'tmp/sockets', 'tmp/files',
 # set :local_user, -> { `git config user.name`.chomp }
 
 # Default value for keep_releases is 5
-set :keep_releases, 5
+set :keep_releases, 3
 
 # Uncomment the following to require manually verifying the host key before first deploy.
 # set :ssh_options, verify_host_key: :secure
 
 # Bundles settings
 # set it to nil for skipping the --path flag.
-set :bundle_path, -> { shared_path.join('vendor/bundle') } 
-set :bundle_without, 'unuset' 
+set :bundle_path, -> { shared_path.join('vendor/bundle') }
+set :bundle_without, 'unuset'
 set :bundle_flags, '--quiet' #
 
 # Yarn settings (The task will run before deploy:updated)
@@ -91,7 +91,7 @@ namespace :deploy do
         end
       end
     end
-  end  
+  end
   after :canvas_compile_assets, :brand_configs_generate_and_upload_all
 
   desc "Restart app"
